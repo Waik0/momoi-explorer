@@ -156,6 +156,11 @@ function FileExplorerInner({
       <Virtuoso
         totalCount={rowItems.length}
         fixedItemHeight={22}
+        increaseViewportBy={200}
+        computeItemKey={(index) => {
+          const item = rowItems[index]
+          return item.type === 'create' ? `__create__${item.parentPath}` : item.node.path
+        }}
         itemContent={(index) => {
           const item = rowItems[index]
 

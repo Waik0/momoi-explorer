@@ -1,4 +1,5 @@
 import type React from 'react'
+import { memo } from 'react'
 import type { TreeNode } from '../core/types'
 import { InlineRename } from './InlineRename'
 
@@ -68,7 +69,7 @@ export interface TreeNodeRowProps {
  * ツリーの1行を表すコンポーネント。
  * インデント・展開矢印・アイコン・ファイル名・バッジ・インラインリネームを描画する。
  */
-export function TreeNodeRow({
+export const TreeNodeRow = memo(function TreeNodeRow({
   node,
   depth,
   isExpanded,
@@ -141,4 +142,4 @@ export function TreeNodeRow({
       )}
     </div>
   )
-}
+})
