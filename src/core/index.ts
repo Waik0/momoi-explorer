@@ -4,6 +4,7 @@ export { flattenTree } from './flatten'
 export { computeSelection } from './selection'
 export { defaultSort } from './sort'
 export { defaultFilter } from './filter'
+export { fuzzyMatch, fuzzyFind, findMatchingPaths } from './search'
 export type {
   FileSystemAdapter,
   FileEntry,

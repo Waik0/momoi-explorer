@@ -1,15 +1,19 @@
 // Electron IPC経由のFileSystemAdapterの実装例
 
-import type { FileSystemAdapter } from 'momoi-explorer'
+import type { FileSystemAdapter, RawWatchEvent } from 'momoi-explorer'
 
 declare global {
   interface Window {
     electronAPI: {
+      getCwd(): Promise<string>
       readDir(path: string): Promise<Array<{ name: string; path: string; isDirectory: boolean }>>
       rename(oldPath: string, newPath: string): Promise<void>
       delete(paths: string[]): Promise<void>
       createFile(parentPath: string, name: string): Promise<void>
       createDir(parentPath: string, name: string): Promise<void>
+      startWatch(path: string): Promise<void>
+      stopWatch(path: string): Promise<void>
+      onFileChange(callback: (events: RawWatchEvent[]) => void): () => void
     }
   }
 }
@@ -21,5 +25,13 @@ export function createElectronAdapter(): FileSystemAdapter {
     delete: (paths) => window.electronAPI.delete(paths),
     createFile: (parentPath, name) => window.electronAPI.createFile(parentPath, name),
     createDir: (parentPath, name) => window.electronAPI.createDir(parentPath, name),
+    watch(path, callback) {
+      const removeListener = window.electronAPI.onFileChange(callback)
+      window.electronAPI.startWatch(path)
+      return () => {
+        removeListener()
+        window.electronAPI.stopWatch(path)
+      }
+    },
   }
 }

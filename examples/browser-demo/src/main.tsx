@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { FileExplorer } from 'momoi-explorer/ui'
-import type { MenuItemDef, TreeEvent, TreeNode } from 'momoi-explorer'
-import { createElectronAdapter } from './adapter'
+import { createRoot } from 'react-dom/client'
+import { FileExplorer, QuickOpen } from 'momoi-explorer/ui'
+import type { FileEntry, FileTreeController, MenuItemDef, TreeNode, TreeEvent } from 'momoi-explorer'
+import { createMockAdapter } from './mock-adapter'
 import 'momoi-explorer/ui/style.css'
 
-const adapter = createElectronAdapter()
+const adapter = createMockAdapter()
 
 interface LogEntry {
   time: string
@@ -19,18 +20,52 @@ function formatTime(): string {
     .join(':')
 }
 
-export function App(): React.JSX.Element {
-  const [rootPath, setRootPath] = useState<string | null>(null)
-  const [logs, setLogs] = useState<LogEntry[]>([])
-  const logEndRef = useRef<HTMLDivElement>(null)
+function eventColor(type: string): string {
+  switch (type) {
+    case 'expand':
+    case 'collapse':
+      return '#569cd6'
+    case 'select':
+      return '#9cdcfe'
+    case 'open':
+      return '#4ec9b0'
+    case 'rename':
+      return '#dcdcaa'
+    case 'delete':
+    case 'menu:delete':
+      return '#f44747'
+    case 'create':
+      return '#6a9955'
+    case 'watch':
+      return '#c586c0'
+    case 'quickopen':
+      return '#ce9178'
+    default:
+      return '#d4d4d4'
+  }
+}
 
-  useEffect(() => {
-    window.electronAPI.getCwd().then(setRootPath)
-  }, [])
+function App(): React.JSX.Element {
+  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [quickOpenVisible, setQuickOpenVisible] = useState(false)
+  const [controllerRef, setControllerRef] = useState<FileTreeController | null>(null)
+  const logEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [logs])
+
+  // Ctrl+P でQuickOpen
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent): void {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        e.preventDefault()
+        setQuickOpenVisible(true)
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   const addLog = useCallback((type: string, detail: string) => {
     setLogs((prev) => [...prev.slice(-200), { time: formatTime(), type, detail }])
@@ -68,7 +103,7 @@ export function App(): React.JSX.Element {
     }
   }, [addLog])
 
-  const contextMenuItems = (nodes: TreeNode[]): MenuItemDef[] => [
+  const contextMenuItems = useCallback((nodes: TreeNode[]): MenuItemDef[] => [
     {
       id: 'open',
       label: 'Open',
@@ -86,25 +121,38 @@ export function App(): React.JSX.Element {
     },
     { id: 'sep1', label: '', separator: true, action: () => {} },
     {
+      id: 'rename',
+      label: 'Rename',
+      shortcut: 'F2',
+      disabled: nodes.length !== 1,
+      action: () => addLog('menu:rename', nodes[0]?.path ?? ''),
+    },
+    {
       id: 'delete',
       label: 'Delete',
       shortcut: 'Delete',
       action: () => addLog('menu:delete', nodes.map((n) => n.path).join(', ')),
     },
-  ]
+  ], [addLog])
 
-  if (!rootPath) {
-    return <div style={{ color: '#888', padding: 16 }}>Loading...</div>
-  }
+  const handleQuickOpenSelect = useCallback((entry: FileEntry) => {
+    addLog('quickopen', entry.path)
+    if (controllerRef) {
+      controllerRef.expandTo(entry.path).then(() => {
+        controllerRef.select(entry.path)
+      })
+    }
+  }, [addLog, controllerRef])
 
   return (
-    <div style={{ display: 'flex', width: '100%', height: '100vh', background: '#1e1e1e' }}>
+    <div style={{ display: 'flex', height: '100vh', background: '#1e1e1e' }}>
       {/* ファイルツリー */}
-      <div style={{ width: 300, borderRight: '1px solid #333', flexShrink: 0 }}>
+      <div style={{ width: 280, borderRight: '1px solid #333', flexShrink: 0 }}>
         <div style={{
           height: 30,
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',
           padding: '0 12px',
           color: '#bbb',
           fontSize: 11,
@@ -112,16 +160,24 @@ export function App(): React.JSX.Element {
           letterSpacing: '0.5px',
           borderBottom: '1px solid #333',
         }}>
-          Explorer
+          <span>Explorer</span>
+          <span
+            style={{ cursor: 'pointer', color: '#888', fontSize: 12, textTransform: 'none' }}
+            onClick={() => setQuickOpenVisible(true)}
+            title="Ctrl+P"
+          >
+            Ctrl+P
+          </span>
         </div>
         <div style={{ height: 'calc(100vh - 30px)' }}>
           <FileExplorer
             adapter={adapter}
-            rootPath={rootPath}
+            rootPath="/project"
+            showFilterBar
             onOpen={(path) => addLog('open', path)}
             onEvent={handleEvent}
             contextMenuItems={contextMenuItems}
-            filter={(entry) => !entry.name.startsWith('.') && entry.name !== 'node_modules'}
+            onControllerReady={setControllerRef}
           />
         </div>
       </div>
@@ -157,7 +213,8 @@ export function App(): React.JSX.Element {
         }}>
           {logs.length === 0 && (
             <div style={{ color: '#555', padding: '12px', fontStyle: 'italic' }}>
-              Interact with the file tree to see events here...
+              Interact with the file tree to see events here...<br />
+              Try the filter bar above the tree, or press Ctrl+P for Quick Open.
             </div>
           )}
           {logs.map((log, i) => (
@@ -188,29 +245,19 @@ export function App(): React.JSX.Element {
           <div ref={logEndRef} />
         </div>
       </div>
+
+      {/* QuickOpen */}
+      {controllerRef && (
+        <QuickOpen
+          controller={controllerRef}
+          isOpen={quickOpenVisible}
+          onClose={() => setQuickOpenVisible(false)}
+          onSelect={handleQuickOpenSelect}
+        />
+      )}
     </div>
   )
 }
 
-function eventColor(type: string): string {
-  switch (type) {
-    case 'expand':
-    case 'collapse':
-      return '#569cd6'
-    case 'select':
-      return '#9cdcfe'
-    case 'open':
-      return '#4ec9b0'
-    case 'rename':
-      return '#dcdcaa'
-    case 'delete':
-    case 'menu:delete':
-      return '#f44747'
-    case 'create':
-      return '#6a9955'
-    case 'watch':
-      return '#c586c0'
-    default:
-      return '#d4d4d4'
-  }
-}
+const root = createRoot(document.getElementById('root')!)
+root.render(<App />)

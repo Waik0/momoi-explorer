@@ -16,6 +16,7 @@ import { flattenTree } from './flatten'
 import { computeSelection } from './selection'
 import { defaultSort } from './sort'
 import { defaultFilter } from './filter'
+import { findMatchingPaths } from './search'
 
 function toTreeNode(entry: FileEntry, depth: number): TreeNode {
   return {
@@ -76,6 +77,7 @@ export function createFileTree(options: FileTreeOptions): FileTreeController {
     selectedPaths: new Set(),
     anchorPath: null,
     renamingPath: null,
+    searchQuery: null,
     flatList: [],
   }
 
@@ -86,7 +88,10 @@ export function createFileTree(options: FileTreeOptions): FileTreeController {
   }
 
   function notify(): void {
-    state = { ...state, flatList: flattenTree(state.rootNodes, state.expandedPaths) }
+    const matchingPaths = state.searchQuery
+      ? findMatchingPaths(state.rootNodes, state.searchQuery)
+      : null
+    state = { ...state, flatList: flattenTree(state.rootNodes, state.expandedPaths, matchingPaths) }
     for (const listener of listeners) {
       listener(state)
     }
@@ -395,6 +400,29 @@ export function createFileTree(options: FileTreeOptions): FileTreeController {
 
       notify()
       emit({ type: 'refresh', path })
+    },
+
+    setSearchQuery(query: string | null): void {
+      state.searchQuery = query && query.trim() ? query.trim() : null
+      notify()
+    },
+
+    async collectAllFiles(): Promise<FileEntry[]> {
+      const result: FileEntry[] = []
+
+      async function walk(dirPath: string): Promise<void> {
+        const entries = await adapter.readDir(dirPath)
+        for (const entry of entries) {
+          if (!filterFn(entry)) continue
+          result.push(entry)
+          if (entry.isDirectory) {
+            await walk(entry.path)
+          }
+        }
+      }
+
+      await walk(rootPath)
+      return result
     },
 
     setFilter(fn: ((entry: FileEntry) => boolean) | null): void {

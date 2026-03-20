@@ -50,7 +50,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "demo:browser": "npm run build && cd examples/browser-demo && npm install && npm run dev",
+    "demo:electron": "npm run build && cd examples/electron-app && npm install && npm run dev"
   },
   "keywords": [
     "file-explorer",

@@ -1,12 +1,13 @@
 import type React from 'react'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { Virtuoso } from 'react-virtuoso'
-import type { FileSystemAdapter, FileTreeOptions, MenuItemDef, TreeEvent, TreeNode } from '../core/types'
+import type { FileSystemAdapter, FileTreeController, FileTreeOptions, MenuItemDef, TreeEvent, TreeNode } from '../core/types'
 import { TreeProvider } from '../react/TreeProvider'
 import { useFileTree } from '../react/useFileTree'
 import { useContextMenu } from '../react/useContextMenu'
 import { TreeNodeRow } from './TreeNodeRow'
 import { ContextMenu } from './ContextMenu'
+import { TreeFilterBar } from './TreeFilterBar'
 
 export interface FileExplorerProps {
   adapter: FileSystemAdapter
@@ -19,6 +20,10 @@ export interface FileExplorerProps {
   renderIcon?: (node: TreeNode, isExpanded: boolean) => React.ReactNode
   renderBadge?: (node: TreeNode) => React.ReactNode
   contextMenuItems?: (nodes: TreeNode[]) => MenuItemDef[]
+  /** ツリーフィルタバーを表示 */
+  showFilterBar?: boolean
+  /** コントローラの参照を受け取るコールバック（QuickOpen等で使用） */
+  onControllerReady?: (controller: FileTreeController) => void
   className?: string
   style?: React.CSSProperties
 }
@@ -28,8 +33,14 @@ function FileExplorerInner({
   renderIcon,
   renderBadge,
   contextMenuItems,
-}: Pick<FileExplorerProps, 'onOpen' | 'renderIcon' | 'renderBadge' | 'contextMenuItems'>): React.JSX.Element {
+  showFilterBar,
+  onControllerReady,
+}: Pick<FileExplorerProps, 'onOpen' | 'renderIcon' | 'renderBadge' | 'contextMenuItems' | 'showFilterBar' | 'onControllerReady'>): React.JSX.Element {
   const { flatList, expandedPaths, selectedPaths, renamingPath, controller } = useFileTree()
+
+  useEffect(() => {
+    onControllerReady?.(controller)
+  }, [controller, onControllerReady])
   const ctxMenu = useContextMenu()
 
   const handleClick = useCallback((path: string, e: React.MouseEvent) => {
@@ -67,6 +78,7 @@ function FileExplorerInner({
 
   return (
     <>
+      {showFilterBar && <TreeFilterBar />}
       <Virtuoso
         totalCount={flatList.length}
         fixedItemHeight={22}
@@ -118,6 +130,8 @@ export function FileExplorer({
   renderIcon,
   renderBadge,
   contextMenuItems,
+  showFilterBar,
+  onControllerReady,
   className,
   style,
 }: FileExplorerProps): React.JSX.Element {
@@ -136,6 +150,8 @@ export function FileExplorer({
           renderIcon={renderIcon}
           renderBadge={renderBadge}
           contextMenuItems={contextMenuItems}
+          showFilterBar={showFilterBar}
+          onControllerReady={onControllerReady}
         />
       </TreeProvider>
     </div>

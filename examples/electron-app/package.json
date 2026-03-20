@@ -4,9 +4,10 @@
   "private": true,
   "main": "dist/main/index.js",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build && tsc -p tsconfig.main.json",
-    "start": "electron dist/main/index.js"
+    "build": "tsc -p tsconfig.main.json && vite build",
+    "dev": "tsc -p tsconfig.main.json && vite build && electron dist/main/index.js",
+    "dev:serve": "tsc -p tsconfig.main.json && vite",
+    "electron": "electron dist/main/index.js"
   },
   "dependencies": {
     "momoi-explorer": "file:../../"

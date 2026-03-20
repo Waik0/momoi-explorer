@@ -67,6 +67,7 @@ export interface TreeState {
   selectedPaths: Set<string>
   anchorPath: string | null
   renamingPath: string | null
+  searchQuery: string | null
   flatList: FlatNode[]
 }
 
@@ -179,6 +180,10 @@ export interface FileTreeController {
 
   // リフレッシュ
   refresh(path?: string): Promise<void>
+
+  // 検索
+  setSearchQuery(query: string | null): void
+  collectAllFiles(): Promise<FileEntry[]>
 
   // フィルタ・ソート
   setFilter(fn: ((entry: FileEntry) => boolean) | null): void
