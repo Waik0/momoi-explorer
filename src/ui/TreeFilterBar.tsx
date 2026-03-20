@@ -2,10 +2,16 @@ import type React from 'react'
 import { useCallback, useRef } from 'react'
 import { useTreeContext } from '../react/context'
 
+/** {@link TreeFilterBar} に渡すprops */
 export interface TreeFilterBarProps {
+  /** 入力欄のプレースホルダー。デフォルト: `"Filter files..."` */
   placeholder?: string
 }
 
+/**
+ * ファジー検索によるツリーフィルタバー。
+ * 入力に応じてツリー表示を絞り込む。Esc キーで入力をクリアする。
+ */
 export function TreeFilterBar({
   placeholder = 'Filter files...',
 }: TreeFilterBarProps): React.JSX.Element {

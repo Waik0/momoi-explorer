@@ -2,13 +2,22 @@ import type React from 'react'
 import { useEffect, useRef } from 'react'
 import type { MenuItemDef } from '../core/types'
 
+/** {@link ContextMenu} に渡すprops */
 export interface ContextMenuProps {
+  /** メニュー項目の定義リスト */
   items: MenuItemDef[]
+  /** メニュー表示のX座標 */
   x: number
+  /** メニュー表示のY座標 */
   y: number
+  /** メニューを閉じる際のコールバック */
   onClose(): void
 }
 
+/**
+ * 右クリックコンテキストメニュー。
+ * 外側クリックまたは Esc キーで閉じる。画面端からはみ出さないよう自動調整する。
+ */
 export function ContextMenu({ items, x, y, onClose }: ContextMenuProps): React.JSX.Element {
   const menuRef = useRef<HTMLDivElement>(null)
 

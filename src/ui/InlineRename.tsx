@@ -1,12 +1,21 @@
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 
+/** {@link InlineRename} に渡すprops */
 export interface InlineRenameProps {
+  /** 現在のファイル/フォルダ名 */
   currentName: string
+  /** 新しい名前で確定する際のコールバック */
   onCommit(newName: string): void
+  /** リネームをキャンセルする際のコールバック */
   onCancel(): void
 }
 
+/**
+ * インライン名前変更用の入力コンポーネント。
+ * Enter で確定、Esc でキャンセル、blur 時も確定する。
+ * マウント時に自動フォーカスし、拡張子の前までを選択状態にする。
+ */
 export function InlineRename({ currentName, onCommit, onCancel }: InlineRenameProps): React.JSX.Element {
   const inputRef = useRef<HTMLInputElement>(null)
   const [value, setValue] = useState(currentName)

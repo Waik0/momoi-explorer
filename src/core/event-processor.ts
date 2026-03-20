@@ -9,11 +9,14 @@ const DEFAULT_THROTTLE_CHUNK_SIZE = 500
 const DEFAULT_THROTTLE_DELAY_MS = 200
 
 /**
- * イベント合体（VSCode EventCoalescer 準拠）
- * - rename → delete(old) + create(new)
- * - delete + create（同一パス） → modify
- * - create + modify（同一パス） → create
+ * 生イベントを合体する（VSCode EventCoalescer 準拠）。
+ * - rename → delete(old) + create(new) に分解
+ * - delete + create（同一パス） → modify に合体
+ * - create + modify（同一パス） → create を維持
  * - 親フォルダ delete → 子の delete を除去
+ *
+ * @param raw - アダプタから受け取った生イベントの配列
+ * @returns 合体処理後のWatchEvent配列
  */
 export function coalesceEvents(raw: RawWatchEvent[]): WatchEvent[] {
   // rename を分解
@@ -81,8 +84,12 @@ export function coalesceEvents(raw: RawWatchEvent[]): WatchEvent[] {
 }
 
 /**
- * イベントプロセッサ
- * デバウンス → 合体 → スロットリング → コールバック
+ * イベントプロセッサを生成する。
+ * デバウンス → 合体 → スロットリング → コールバック のパイプラインで処理する。
+ *
+ * @param callback - 処理済みイベントを受け取るコールバック
+ * @param options - デバウンス・合体・スロットリングの設定
+ * @returns push/flush/destroyメソッドを持つプロセッサオブジェクト
  */
 export function createEventProcessor(
   callback: (events: WatchEvent[]) => void,
