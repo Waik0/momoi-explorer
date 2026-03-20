@@ -22,15 +22,18 @@ export function useExplorerKeybindings(
   const optionsRef = useRef(options)
   optionsRef.current = options
 
-  const getSelectedParent = useCallback((): string => {
+  const getCreateTarget = useCallback((): { parentPath: string; insertAfterPath?: string } => {
     const s = stateRef.current
-    if (s.selectedPaths.size === 0) return s.rootPath
+    if (s.selectedPaths.size === 0) return { parentPath: s.rootPath }
     const firstSelected = s.flatList.find((f) => s.selectedPaths.has(f.node.path))
-    if (!firstSelected) return s.rootPath
-    if (firstSelected.node.isDirectory) return firstSelected.node.path
+    if (!firstSelected) return { parentPath: s.rootPath }
+    // フォルダ選択 → そのフォルダの子の先頭
+    if (firstSelected.node.isDirectory) return { parentPath: firstSelected.node.path }
+    // ファイル選択 → そのファイルの直後
     const sep = firstSelected.node.path.includes('\\') ? '\\' : '/'
     const idx = firstSelected.node.path.lastIndexOf(sep)
-    return idx === -1 ? s.rootPath : firstSelected.node.path.slice(0, idx)
+    const parentPath = idx === -1 ? s.rootPath : firstSelected.node.path.slice(0, idx)
+    return { parentPath, insertAfterPath: firstSelected.node.path }
   }, [])
 
   useEffect(() => {
@@ -46,8 +49,14 @@ export function useExplorerKeybindings(
           controller.startRename(Array.from(s.selectedPaths)[0])
         }
       },
-      [ExplorerCommands.NEW_FILE]: () => controller.startCreate(getSelectedParent(), false),
-      [ExplorerCommands.NEW_FOLDER]: () => controller.startCreate(getSelectedParent(), true),
+      [ExplorerCommands.NEW_FILE]: () => {
+        const t = getCreateTarget()
+        controller.startCreate(t.parentPath, false, t.insertAfterPath)
+      },
+      [ExplorerCommands.NEW_FOLDER]: () => {
+        const t = getCreateTarget()
+        controller.startCreate(t.parentPath, true, t.insertAfterPath)
+      },
       [ExplorerCommands.REFRESH]: () => controller.refresh(),
       [ExplorerCommands.COLLAPSE_ALL]: () => {
         const s = stateRef.current
@@ -72,7 +81,7 @@ export function useExplorerKeybindings(
         dispose()
       }
     }
-  }, [inputService, controller, getSelectedParent])
+  }, [inputService, controller, getCreateTarget])
 }
 
 /**

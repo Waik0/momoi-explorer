@@ -97,20 +97,19 @@ function FileExplorerInner({
 
     if (!creatingState) return items
 
-    const { parentPath, isDirectory } = creatingState
+    const { parentPath, isDirectory, insertAfterPath } = creatingState
 
-    if (parentPath === rootPath) {
-      // ルート直下: フォルダ作成なら先頭、ファイル作成ならフォルダの後
-      let insertIdx = 0
-      if (!isDirectory) {
-        // フォルダの後に挿入
-        while (insertIdx < items.length && items[insertIdx].type === 'node' && items[insertIdx].depth === 0 && (items[insertIdx] as NodeRowItem).node.isDirectory) {
-          insertIdx++
-        }
+    if (insertAfterPath) {
+      // 指定ノードの直後に挿入（ファイル選択時のNew File）
+      const idx = items.findIndex((item) => item.type === 'node' && (item as NodeRowItem).node.path === insertAfterPath)
+      if (idx !== -1) {
+        items.splice(idx + 1, 0, { type: 'create', parentPath, isDirectory, depth: items[idx].depth })
       }
-      items.splice(insertIdx, 0, { type: 'create', parentPath, isDirectory, depth: 0 })
+    } else if (parentPath === rootPath) {
+      // ルート末尾に挿入（選択なし時）
+      items.push({ type: 'create', parentPath, isDirectory, depth: 0 })
     } else {
-      // 親フォルダの直後（子の先頭）に挿入
+      // 親フォルダの子の先頭に挿入（フォルダ選択時）
       const parentIdx = items.findIndex((item) => item.type === 'node' && (item as NodeRowItem).node.path === parentPath)
       if (parentIdx !== -1) {
         const parentDepth = items[parentIdx].depth
@@ -121,23 +120,26 @@ function FileExplorerInner({
     return items
   }, [flatList, creatingState, rootPath])
 
-  const handleClick = useCallback((path: string, e: React.MouseEvent) => {
+  const handleClick = useCallback((path: string, isDirectory: boolean, e: React.MouseEvent) => {
     if (e.shiftKey) {
       controller.select(path, 'range')
     } else if (e.ctrlKey || e.metaKey) {
       controller.select(path, 'toggle')
     } else {
       controller.select(path, 'replace')
+      // シングルクリックでフォルダ展開/折りたたみ（VSCode方式）
+      if (isDirectory) {
+        controller.toggleExpand(path)
+      }
     }
   }, [controller])
 
   const handleDoubleClick = useCallback((path: string, isDirectory: boolean) => {
-    if (isDirectory) {
-      controller.toggleExpand(path)
-    } else {
+    // ダブルクリックはファイルを開くだけ（フォルダは無視）
+    if (!isDirectory) {
       onOpen?.(path)
     }
-  }, [controller, onOpen])
+  }, [onOpen])
 
   const handleContextMenu = useCallback((e: React.MouseEvent, path: string) => {
     if (!selectedPaths.has(path)) {
@@ -186,7 +188,16 @@ function FileExplorerInner({
 
           if (item.type === 'create') {
             return (
-              <div className="momoi-explorer-row" style={{ paddingLeft: item.depth * 16 + 32 }}>
+              <div className="momoi-explorer-row">
+                {/* TreeNodeRowと同じインデント構造 */}
+                <span className="momoi-explorer-indent">
+                  {Array.from({ length: item.depth }, (_, i) => (
+                    <span key={i} className="momoi-explorer-indent-guide" />
+                  ))}
+                </span>
+                <span className="momoi-explorer-chevron" data-is-dir="false">
+                  <svg viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" fill="none" /></svg>
+                </span>
                 <span className="momoi-explorer-icon">
                   {item.isDirectory ? '📁' : '📄'}
                 </span>
@@ -207,7 +218,7 @@ function FileExplorerInner({
               isExpanded={expandedPaths.has(node.path)}
               isSelected={selectedPaths.has(node.path)}
               isRenaming={renamingPath === node.path}
-              onClick={(e) => handleClick(node.path, e)}
+              onClick={(e) => handleClick(node.path, node.isDirectory, e)}
               onDoubleClick={() => handleDoubleClick(node.path, node.isDirectory)}
               onContextMenu={(e) => handleContextMenu(e, node.path)}
               onToggleExpand={() => controller.toggleExpand(node.path)}

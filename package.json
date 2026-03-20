@@ -1,6 +1,6 @@
 {
   "name": "momoi-explorer",
-  "version": "0.1.0",
+  "version": "0.8.0",
   "description": "A headless file explorer component with React bindings and default UI",
   "author": "Waik0",
   "license": "MIT",

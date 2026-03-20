@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FileExplorer } from 'momoi-explorer/ui'
+import { defaultExplorerKeybindings } from 'momoi-explorer'
 import type { FileTreeController, MenuItemDef, TreeEvent, TreeNode } from 'momoi-explorer'
+import { InputService } from 'momoi-keybind'
 import { createElectronAdapter } from './adapter'
 import 'momoi-explorer/ui/style.css'
 
@@ -24,6 +26,19 @@ export function App(): React.JSX.Element {
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [controllerRef, setControllerRef] = useState<FileTreeController | null>(null)
   const logEndRef = useRef<HTMLDivElement>(null)
+
+  // momoi-keybind: InputServiceを初期化
+  const inputService = useMemo(() => {
+    const svc = new InputService({
+      defaultKeybindings: defaultExplorerKeybindings,
+    })
+    svc.start()
+    return svc
+  }, [])
+
+  useEffect(() => {
+    return () => inputService.dispose()
+  }, [inputService])
 
   useEffect(() => {
     window.electronAPI.getCwd().then(setRootPath)
@@ -94,13 +109,14 @@ export function App(): React.JSX.Element {
 
     const target = nodes[0]
     const parentPath = target.isDirectory ? target.path : target.path.replace(/[/\\][^/\\]+$/, '')
+    const insertAfterPath = target.isDirectory ? undefined : target.path
 
     return [
       {
         id: 'new-file',
         label: 'New File',
         action: () => {
-          controllerRef?.startCreate(parentPath, false)
+          controllerRef?.startCreate(parentPath, false, insertAfterPath)
           addLog('menu:new-file', parentPath)
         },
       },
@@ -108,7 +124,7 @@ export function App(): React.JSX.Element {
         id: 'new-folder',
         label: 'New Folder',
         action: () => {
-          controllerRef?.startCreate(parentPath, true)
+          controllerRef?.startCreate(parentPath, true, insertAfterPath)
           addLog('menu:new-folder', parentPath)
         },
       },
@@ -133,7 +149,10 @@ export function App(): React.JSX.Element {
         id: 'delete',
         label: 'Delete',
         shortcut: 'Delete',
-        action: () => addLog('menu:delete', nodes.map((n) => n.path).join(', ')),
+        action: () => {
+          controllerRef?.deleteSelected()
+          addLog('menu:delete', nodes.map((n) => n.path).join(', '))
+        },
       },
     ]
   }
@@ -164,11 +183,11 @@ export function App(): React.JSX.Element {
             adapter={adapter}
             rootPath={rootPath}
             showFilterBar
+            inputService={inputService}
             onOpen={(path) => addLog('open', path)}
             onEvent={handleEvent}
             contextMenuItems={contextMenuItems}
             onControllerReady={setControllerRef}
-            filter={(entry) => !entry.name.startsWith('.') && entry.name !== 'node_modules'}
           />
         </div>
       </div>

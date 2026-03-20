@@ -31,7 +31,6 @@ ipcMain.handle('getCwd', () => process.cwd())
 ipcMain.handle('readDir', async (_event, dirPath: string) => {
   const entries = await fs.readdir(dirPath, { withFileTypes: true })
   return entries
-    .filter((e) => !e.name.startsWith('.'))
     .map((e) => ({
       name: e.name,
       path: path.join(dirPath, e.name),

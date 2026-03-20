@@ -139,6 +139,8 @@ export interface CreatingState {
   parentPath: string
   /** ファイルかフォルダか */
   isDirectory: boolean
+  /** この位置の直後に入力行を表示する。未指定なら親の子の先頭（フォルダ選択時）or末尾（選択なし時） */
+  insertAfterPath?: string
 }
 
 /**
@@ -379,8 +381,9 @@ export interface FileTreeController {
    * インライン新規作成モードを開始する。親ディレクトリを展開し、入力行を表示する。
    * @param parentPath - 作成先の親ディレクトリの絶対パス
    * @param isDirectory - フォルダを作成する場合はtrue
+   * @param insertAfterPath - この位置の直後に入力行を表示する
    */
-  startCreate(parentPath: string, isDirectory: boolean): Promise<void>
+  startCreate(parentPath: string, isDirectory: boolean, insertAfterPath?: string): Promise<void>
   /**
    * インライン新規作成を確定する。adapter.createFile/createDirが呼ばれる。
    * @param name - 新規ファイル/フォルダ名

@@ -122,8 +122,41 @@ export function createFileTree(options: FileTreeOptions): FileTreeController {
     const entries = await adapter.readDir(node.path)
     const filtered = entries.filter(filterFn)
     filtered.sort(sortFn)
-    node.children = filtered.map((e) => toTreeNode(e, node.depth + 1))
+    // 既存の展開済み子ノードのchildrenを引き継ぐ
+    const oldChildMap = node.children
+      ? new Map(node.children.map((c) => [c.path, c]))
+      : new Map<string, TreeNode>()
+    node.children = filtered.map((e) => {
+      const existing = oldChildMap.get(e.path)
+      if (existing && existing.childrenLoaded) {
+        return { ...toTreeNode(e, node.depth + 1), children: existing.children, childrenLoaded: true }
+      }
+      return toTreeNode(e, node.depth + 1)
+    })
     node.childrenLoaded = true
+  }
+
+  /** 親ディレクトリをリフレッシュし、展開中のフォルダの子も再読み込みする */
+  async function refreshParent(parentPath: string): Promise<void> {
+    const parentNode = findNode(state.rootNodes, parentPath)
+    if (parentNode) {
+      await loadChildren(parentNode)
+      state.expandedPaths = new Set(state.expandedPaths)
+      state.expandedPaths.add(parentPath)
+    } else if (parentPath === rootPath) {
+      const entries = await adapter.readDir(rootPath)
+      const filtered = entries.filter(filterFn)
+      filtered.sort(sortFn)
+      // 既存の展開済みノードのchildrenを引き継ぐ
+      const oldNodeMap = new Map(state.rootNodes.map((n) => [n.path, n]))
+      state.rootNodes = filtered.map((e) => {
+        const existing = oldNodeMap.get(e.path)
+        if (existing && existing.childrenLoaded) {
+          return { ...toTreeNode(e, 0), children: existing.children, childrenLoaded: true }
+        }
+        return toTreeNode(e, 0)
+      })
+    }
   }
 
   function sortNodes(nodes: TreeNode[]): void {
@@ -166,16 +199,9 @@ export function createFileTree(options: FileTreeOptions): FileTreeController {
       }
     }
 
-    // 非同期でリフレッシュ
+    // 非同期でリフレッシュ（展開状態を保持）
     for (const dir of dirsToRefresh) {
-      if (dir === rootPath) {
-        controller.loadRoot().catch(() => {})
-      } else {
-        const node = findNode(state.rootNodes, dir)
-        if (node) {
-          loadChildren(node).then(() => notify()).catch(() => {})
-        }
-      }
+      refreshParent(dir).then(() => notify()).catch(() => {})
     }
   }
 
@@ -348,12 +374,12 @@ export function createFileTree(options: FileTreeOptions): FileTreeController {
       notify()
     },
 
-    async startCreate(parentPath: string, isDirectory: boolean): Promise<void> {
+    async startCreate(parentPath: string, isDirectory: boolean, insertAfterPath?: string): Promise<void> {
       // 親フォルダを展開してから作成モードに入る
       if (parentPath !== rootPath && !state.expandedPaths.has(parentPath)) {
         await controller.expand(parentPath)
       }
-      state.creatingState = { parentPath, isDirectory }
+      state.creatingState = { parentPath, isDirectory, insertAfterPath }
       notify()
     },
 
@@ -378,18 +404,7 @@ export function createFileTree(options: FileTreeOptions): FileTreeController {
     async createFile(parentPath: string, name: string): Promise<void> {
       if (!adapter.createFile) return
       await adapter.createFile(parentPath, name)
-
-      const parentNode = findNode(state.rootNodes, parentPath)
-      if (parentNode) {
-        await loadChildren(parentNode)
-        state.expandedPaths = new Set(state.expandedPaths)
-        state.expandedPaths.add(parentPath)
-      } else if (parentPath === rootPath) {
-        const entries = await adapter.readDir(rootPath)
-        const filtered = entries.filter(filterFn)
-        filtered.sort(sortFn)
-        state.rootNodes = filtered.map((e) => toTreeNode(e, 0))
-      }
+      await refreshParent(parentPath)
 
       notify()
       emit({ type: 'create', parentPath, name, isDirectory: false })
@@ -398,18 +413,7 @@ export function createFileTree(options: FileTreeOptions): FileTreeController {
     async createDir(parentPath: string, name: string): Promise<void> {
       if (!adapter.createDir) return
       await adapter.createDir(parentPath, name)
-
-      const parentNode = findNode(state.rootNodes, parentPath)
-      if (parentNode) {
-        await loadChildren(parentNode)
-        state.expandedPaths = new Set(state.expandedPaths)
-        state.expandedPaths.add(parentPath)
-      } else if (parentPath === rootPath) {
-        const entries = await adapter.readDir(rootPath)
-        const filtered = entries.filter(filterFn)
-        filtered.sort(sortFn)
-        state.rootNodes = filtered.map((e) => toTreeNode(e, 0))
-      }
+      await refreshParent(parentPath)
 
       notify()
       emit({ type: 'create', parentPath, name, isDirectory: true })
@@ -427,17 +431,7 @@ export function createFileTree(options: FileTreeOptions): FileTreeController {
       // 影響を受ける親ディレクトリをリフレッシュ
       const parentDirs = new Set(paths.map(dirname))
       for (const dir of parentDirs) {
-        if (dir === rootPath) {
-          const entries = await adapter.readDir(rootPath)
-          const filtered = entries.filter(filterFn)
-          filtered.sort(sortFn)
-          state.rootNodes = filtered.map((e) => toTreeNode(e, 0))
-        } else {
-          const parentNode = findNode(state.rootNodes, dir)
-          if (parentNode) {
-            await loadChildren(parentNode)
-          }
-        }
+        await refreshParent(dir)
       }
 
       notify()
@@ -446,19 +440,7 @@ export function createFileTree(options: FileTreeOptions): FileTreeController {
 
     async refresh(path?: string): Promise<void> {
       if (!path || path === rootPath) {
-        // 展開状態を保持してルートを再読み込み
-        const entries = await adapter.readDir(rootPath)
-        const filtered = entries.filter(filterFn)
-        filtered.sort(sortFn)
-        state.rootNodes = filtered.map((e) => toTreeNode(e, 0))
-
-        // 展開中のディレクトリを再読み込み
-        for (const expandedPath of state.expandedPaths) {
-          const node = findNode(state.rootNodes, expandedPath)
-          if (node && node.isDirectory) {
-            await loadChildren(node)
-          }
-        }
+        await refreshParent(rootPath)
       } else {
         const node = findNode(state.rootNodes, path)
         if (node && node.isDirectory) {
