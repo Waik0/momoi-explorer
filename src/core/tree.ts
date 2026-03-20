@@ -102,6 +102,7 @@ export function createFileTree(options: FileTreeOptions): FileTreeController {
   }
 
   const listeners = new Set<(state: TreeState) => void>()
+  let expandingPaths = new Set<string>()
 
   function emit(event: TreeEvent): void {
     onEvent?.(event)
@@ -218,17 +219,26 @@ export function createFileTree(options: FileTreeOptions): FileTreeController {
     },
 
     async expand(path: string): Promise<void> {
-      const node = findNode(state.rootNodes, path)
-      if (!node || !node.isDirectory) return
+      // 再入ガード: 同じパスの展開処理が進行中なら無視
+      if (expandingPaths.has(path)) return
+      expandingPaths.add(path)
 
-      if (!node.childrenLoaded) {
-        await loadChildren(node)
+      try {
+        const node = findNode(state.rootNodes, path)
+        if (!node || !node.isDirectory) return
+
+        if (!node.childrenLoaded) {
+          await loadChildren(node)
+        }
+
+        // await後にstateが変わっている可能性があるので再確認
+        state.expandedPaths = new Set(state.expandedPaths)
+        state.expandedPaths.add(path)
+        notify()
+        emit({ type: 'expand', path })
+      } finally {
+        expandingPaths.delete(path)
       }
-
-      state.expandedPaths = new Set(state.expandedPaths)
-      state.expandedPaths.add(path)
-      notify()
-      emit({ type: 'expand', path })
     },
 
     collapse(path: string): void {
@@ -247,6 +257,9 @@ export function createFileTree(options: FileTreeOptions): FileTreeController {
     },
 
     async toggleExpand(path: string): Promise<void> {
+      // expand進行中は無視（ダブルクリックで展開→即collapseを防止）
+      if (expandingPaths.has(path)) return
+
       if (state.expandedPaths.has(path)) {
         controller.collapse(path)
       } else {
