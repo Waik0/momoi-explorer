@@ -10,6 +10,7 @@ export type {
   FileEntry,
   TreeNode,
   FlatNode,
+  CreatingState,
   TreeState,
   RawWatchEvent,
   WatchEvent,

@@ -77,6 +77,7 @@ export function createFileTree(options: FileTreeOptions): FileTreeController {
     selectedPaths: new Set(),
     anchorPath: null,
     renamingPath: null,
+    creatingState: null,
     searchQuery: null,
     flatList: [],
   }
@@ -304,6 +305,33 @@ export function createFileTree(options: FileTreeOptions): FileTreeController {
 
     cancelRename(): void {
       state.renamingPath = null
+      notify()
+    },
+
+    async startCreate(parentPath: string, isDirectory: boolean): Promise<void> {
+      // 親フォルダを展開してから作成モードに入る
+      if (parentPath !== rootPath && !state.expandedPaths.has(parentPath)) {
+        await controller.expand(parentPath)
+      }
+      state.creatingState = { parentPath, isDirectory }
+      notify()
+    },
+
+    async commitCreate(name: string): Promise<void> {
+      if (!state.creatingState) return
+
+      const { parentPath, isDirectory } = state.creatingState
+      state.creatingState = null
+
+      if (isDirectory) {
+        await controller.createDir(parentPath, name)
+      } else {
+        await controller.createFile(parentPath, name)
+      }
+    },
+
+    cancelCreate(): void {
+      state.creatingState = null
       notify()
     },
 

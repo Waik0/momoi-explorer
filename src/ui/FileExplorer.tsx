@@ -8,6 +8,7 @@ import { useContextMenu } from '../react/useContextMenu'
 import { TreeNodeRow } from './TreeNodeRow'
 import { ContextMenu } from './ContextMenu'
 import { TreeFilterBar } from './TreeFilterBar'
+import { InlineRename } from './InlineRename'
 
 export interface FileExplorerProps {
   adapter: FileSystemAdapter
@@ -28,6 +29,23 @@ export interface FileExplorerProps {
   style?: React.CSSProperties
 }
 
+/** 新規作成行のアイテム型 */
+interface CreateRowItem {
+  type: 'create'
+  parentPath: string
+  isDirectory: boolean
+  depth: number
+}
+
+/** 通常ノード行のアイテム型 */
+interface NodeRowItem {
+  type: 'node'
+  node: TreeNode
+  depth: number
+}
+
+type RowItem = NodeRowItem | CreateRowItem
+
 function FileExplorerInner({
   onOpen,
   renderIcon,
@@ -36,12 +54,46 @@ function FileExplorerInner({
   showFilterBar,
   onControllerReady,
 }: Pick<FileExplorerProps, 'onOpen' | 'renderIcon' | 'renderBadge' | 'contextMenuItems' | 'showFilterBar' | 'onControllerReady'>): React.JSX.Element {
-  const { flatList, expandedPaths, selectedPaths, renamingPath, controller } = useFileTree()
+  const { flatList, expandedPaths, selectedPaths, renamingPath, creatingState, rootPath, controller } = useFileTree()
 
   useEffect(() => {
     onControllerReady?.(controller)
   }, [controller, onControllerReady])
   const ctxMenu = useContextMenu()
+
+  // flatListに新規作成行を挿入したリストを生成
+  const rowItems = useMemo<RowItem[]>(() => {
+    const items: RowItem[] = flatList.map((f) => ({
+      type: 'node' as const,
+      node: f.node,
+      depth: f.depth,
+    }))
+
+    if (!creatingState) return items
+
+    const { parentPath, isDirectory } = creatingState
+
+    if (parentPath === rootPath) {
+      // ルート直下: フォルダ作成なら先頭、ファイル作成ならフォルダの後
+      let insertIdx = 0
+      if (!isDirectory) {
+        // フォルダの後に挿入
+        while (insertIdx < items.length && items[insertIdx].type === 'node' && items[insertIdx].depth === 0 && (items[insertIdx] as NodeRowItem).node.isDirectory) {
+          insertIdx++
+        }
+      }
+      items.splice(insertIdx, 0, { type: 'create', parentPath, isDirectory, depth: 0 })
+    } else {
+      // 親フォルダの直後（子の先頭）に挿入
+      const parentIdx = items.findIndex((item) => item.type === 'node' && (item as NodeRowItem).node.path === parentPath)
+      if (parentIdx !== -1) {
+        const parentDepth = items[parentIdx].depth
+        items.splice(parentIdx + 1, 0, { type: 'create', parentPath, isDirectory, depth: parentDepth + 1 })
+      }
+    }
+
+    return items
+  }, [flatList, creatingState, rootPath])
 
   const handleClick = useCallback((path: string, e: React.MouseEvent) => {
     if (e.shiftKey) {
@@ -80,10 +132,27 @@ function FileExplorerInner({
     <>
       {showFilterBar && <TreeFilterBar />}
       <Virtuoso
-        totalCount={flatList.length}
+        totalCount={rowItems.length}
         fixedItemHeight={22}
         itemContent={(index) => {
-          const { node, depth } = flatList[index]
+          const item = rowItems[index]
+
+          if (item.type === 'create') {
+            return (
+              <div className="momoi-explorer-row" style={{ paddingLeft: item.depth * 16 + 32 }}>
+                <span className="momoi-explorer-icon">
+                  {item.isDirectory ? '📁' : '📄'}
+                </span>
+                <InlineRename
+                  currentName=""
+                  onCommit={(name) => controller.commitCreate(name)}
+                  onCancel={() => controller.cancelCreate()}
+                />
+              </div>
+            )
+          }
+
+          const { node, depth } = item
           return (
             <TreeNodeRow
               node={node}

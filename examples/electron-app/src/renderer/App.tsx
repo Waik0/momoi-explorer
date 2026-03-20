@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FileExplorer } from 'momoi-explorer/ui'
-import type { MenuItemDef, TreeEvent, TreeNode } from 'momoi-explorer'
+import type { FileTreeController, MenuItemDef, TreeEvent, TreeNode } from 'momoi-explorer'
 import { createElectronAdapter } from './adapter'
 import 'momoi-explorer/ui/style.css'
 
@@ -22,6 +22,7 @@ function formatTime(): string {
 export function App(): React.JSX.Element {
   const [rootPath, setRootPath] = useState<string | null>(null)
   const [logs, setLogs] = useState<LogEntry[]>([])
+  const [controllerRef, setControllerRef] = useState<FileTreeController | null>(null)
   const logEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -68,30 +69,53 @@ export function App(): React.JSX.Element {
     }
   }, [addLog])
 
-  const contextMenuItems = (nodes: TreeNode[]): MenuItemDef[] => [
-    {
-      id: 'open',
-      label: 'Open',
-      action: () => addLog('menu:open', nodes.map((n) => n.path).join(', ')),
-    },
-    {
-      id: 'copy-path',
-      label: 'Copy Path',
-      shortcut: 'Ctrl+Shift+C',
-      action: () => {
-        const paths = nodes.map((n) => n.path).join('\n')
-        navigator.clipboard.writeText(paths)
-        addLog('menu:copy', paths)
+  const contextMenuItems = (nodes: TreeNode[]): MenuItemDef[] => {
+    const target = nodes[0]
+    const sep = target?.path.includes('\\') ? '\\' : '/'
+    const parentPath = target?.isDirectory ? target.path : (target?.path.replace(/[/\\][^/\\]+$/, '') ?? rootPath!)
+
+    return [
+      {
+        id: 'new-file',
+        label: 'New File',
+        action: () => {
+          controllerRef?.startCreate(parentPath, false)
+          addLog('menu:new-file', parentPath)
+        },
       },
-    },
-    { id: 'sep1', label: '', separator: true, action: () => {} },
-    {
-      id: 'delete',
-      label: 'Delete',
-      shortcut: 'Delete',
-      action: () => addLog('menu:delete', nodes.map((n) => n.path).join(', ')),
-    },
-  ]
+      {
+        id: 'new-folder',
+        label: 'New Folder',
+        action: () => {
+          controllerRef?.startCreate(parentPath, true)
+          addLog('menu:new-folder', parentPath)
+        },
+      },
+      { id: 'sep1', label: '', separator: true, action: () => {} },
+      {
+        id: 'open',
+        label: 'Open',
+        action: () => addLog('menu:open', nodes.map((n) => n.path).join(', ')),
+      },
+      {
+        id: 'copy-path',
+        label: 'Copy Path',
+        shortcut: 'Ctrl+Shift+C',
+        action: () => {
+          const paths = nodes.map((n) => n.path).join('\n')
+          navigator.clipboard.writeText(paths)
+          addLog('menu:copy', paths)
+        },
+      },
+      { id: 'sep2', label: '', separator: true, action: () => {} },
+      {
+        id: 'delete',
+        label: 'Delete',
+        shortcut: 'Delete',
+        action: () => addLog('menu:delete', nodes.map((n) => n.path).join(', ')),
+      },
+    ]
+  }
 
   if (!rootPath) {
     return <div style={{ color: '#888', padding: 16 }}>Loading...</div>
@@ -118,9 +142,11 @@ export function App(): React.JSX.Element {
           <FileExplorer
             adapter={adapter}
             rootPath={rootPath}
+            showFilterBar
             onOpen={(path) => addLog('open', path)}
             onEvent={handleEvent}
             contextMenuItems={contextMenuItems}
+            onControllerReady={setControllerRef}
             filter={(entry) => !entry.name.startsWith('.') && entry.name !== 'node_modules'}
           />
         </div>

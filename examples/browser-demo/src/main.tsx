@@ -103,37 +103,59 @@ function App(): React.JSX.Element {
     }
   }, [addLog])
 
-  const contextMenuItems = useCallback((nodes: TreeNode[]): MenuItemDef[] => [
-    {
-      id: 'open',
-      label: 'Open',
-      action: () => addLog('menu:open', nodes.map((n) => n.path).join(', ')),
-    },
-    {
-      id: 'copy-path',
-      label: 'Copy Path',
-      shortcut: 'Ctrl+Shift+C',
-      action: () => {
-        const paths = nodes.map((n) => n.path).join('\n')
-        navigator.clipboard.writeText(paths)
-        addLog('menu:copy', paths)
+  const contextMenuItems = useCallback((nodes: TreeNode[]): MenuItemDef[] => {
+    const target = nodes[0]
+    const parentPath = target?.isDirectory ? target.path : (target?.path.replace(/\/[^/]+$/, '') ?? '/project')
+
+    return [
+      {
+        id: 'new-file',
+        label: 'New File',
+        action: () => {
+          controllerRef?.startCreate(parentPath, false)
+          addLog('menu:new-file', parentPath)
+        },
       },
-    },
-    { id: 'sep1', label: '', separator: true, action: () => {} },
-    {
-      id: 'rename',
-      label: 'Rename',
-      shortcut: 'F2',
-      disabled: nodes.length !== 1,
-      action: () => addLog('menu:rename', nodes[0]?.path ?? ''),
-    },
-    {
-      id: 'delete',
-      label: 'Delete',
-      shortcut: 'Delete',
-      action: () => addLog('menu:delete', nodes.map((n) => n.path).join(', ')),
-    },
-  ], [addLog])
+      {
+        id: 'new-folder',
+        label: 'New Folder',
+        action: () => {
+          controllerRef?.startCreate(parentPath, true)
+          addLog('menu:new-folder', parentPath)
+        },
+      },
+      { id: 'sep1', label: '', separator: true, action: () => {} },
+      {
+        id: 'open',
+        label: 'Open',
+        action: () => addLog('menu:open', nodes.map((n) => n.path).join(', ')),
+      },
+      {
+        id: 'copy-path',
+        label: 'Copy Path',
+        shortcut: 'Ctrl+Shift+C',
+        action: () => {
+          const paths = nodes.map((n) => n.path).join('\n')
+          navigator.clipboard.writeText(paths)
+          addLog('menu:copy', paths)
+        },
+      },
+      { id: 'sep2', label: '', separator: true, action: () => {} },
+      {
+        id: 'rename',
+        label: 'Rename',
+        shortcut: 'F2',
+        disabled: nodes.length !== 1,
+        action: () => addLog('menu:rename', nodes[0]?.path ?? ''),
+      },
+      {
+        id: 'delete',
+        label: 'Delete',
+        shortcut: 'Delete',
+        action: () => addLog('menu:delete', nodes.map((n) => n.path).join(', ')),
+      },
+    ]
+  }, [addLog, controllerRef])
 
   const handleQuickOpenSelect = useCallback((entry: FileEntry) => {
     addLog('quickopen', entry.path)

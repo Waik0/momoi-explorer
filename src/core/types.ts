@@ -60,6 +60,13 @@ export interface FlatNode {
 // ツリー状態
 // ============================================================
 
+export interface CreatingState {
+  /** 新規アイテムを作成する親ディレクトリのパス */
+  parentPath: string
+  /** ファイルかフォルダか */
+  isDirectory: boolean
+}
+
 export interface TreeState {
   rootPath: string
   rootNodes: TreeNode[]
@@ -67,6 +74,7 @@ export interface TreeState {
   selectedPaths: Set<string>
   anchorPath: string | null
   renamingPath: string | null
+  creatingState: CreatingState | null
   searchQuery: string | null
   flatList: FlatNode[]
 }
@@ -174,6 +182,9 @@ export interface FileTreeController {
   startRename(path: string): void
   commitRename(newName: string): Promise<void>
   cancelRename(): void
+  startCreate(parentPath: string, isDirectory: boolean): Promise<void>
+  commitCreate(name: string): Promise<void>
+  cancelCreate(): void
   createFile(parentPath: string, name: string): Promise<void>
   createDir(parentPath: string, name: string): Promise<void>
   deleteSelected(): Promise<void>
