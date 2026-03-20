@@ -34,22 +34,40 @@ function FileIcon(): React.JSX.Element {
   )
 }
 
+/** {@link TreeNodeRow} に渡すprops */
 export interface TreeNodeRowProps {
+  /** 表示対象のノード */
   node: TreeNode
+  /** ネスト深度（インデント量に使用） */
   depth: number
+  /** ディレクトリが展開されているか */
   isExpanded: boolean
+  /** 選択されているか */
   isSelected: boolean
+  /** リネーム中か */
   isRenaming: boolean
+  /** 行クリック時のハンドラ */
   onClick(e: React.MouseEvent): void
+  /** 行ダブルクリック時のハンドラ */
   onDoubleClick(): void
+  /** 右クリック時のハンドラ */
   onContextMenu(e: React.MouseEvent): void
+  /** 展開/折りたたみトグル */
   onToggleExpand(): void
+  /** リネーム確定時のハンドラ */
   onCommitRename(newName: string): void
+  /** リネームキャンセル時のハンドラ */
   onCancelRename(): void
+  /** ノードアイコンのカスタムレンダラー */
   renderIcon?: (node: TreeNode, isExpanded: boolean) => React.ReactNode
+  /** ノード右端に表示するバッジのカスタムレンダラー */
   renderBadge?: (node: TreeNode) => React.ReactNode
 }
 
+/**
+ * ツリーの1行を表すコンポーネント。
+ * インデント・展開矢印・アイコン・ファイル名・バッジ・インラインリネームを描画する。
+ */
 export function TreeNodeRow({
   node,
   depth,

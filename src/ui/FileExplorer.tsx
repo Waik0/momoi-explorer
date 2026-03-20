@@ -9,22 +9,35 @@ import { TreeNodeRow } from './TreeNodeRow'
 import { ContextMenu } from './ContextMenu'
 import { TreeFilterBar } from './TreeFilterBar'
 
+/** {@link FileExplorer} に渡すprops */
 export interface FileExplorerProps {
+  /** ファイルシステム操作の実装 */
   adapter: FileSystemAdapter
+  /** ツリーのルートディレクトリパス */
   rootPath: string
+  /** ファイル/フォルダのソート関数 */
   sort?: FileTreeOptions['sort']
+  /** 表示対象を絞り込むフィルタ関数 */
   filter?: FileTreeOptions['filter']
+  /** ファイル監視の設定 */
   watchOptions?: FileTreeOptions['watchOptions']
+  /** ツリー操作イベント（展開・選択・リネーム等）のコールバック */
   onEvent?: (event: TreeEvent) => void
+  /** ファイルをダブルクリックで開いた際のコールバック */
   onOpen?: (path: string) => void
+  /** ノードアイコンのカスタムレンダラー */
   renderIcon?: (node: TreeNode, isExpanded: boolean) => React.ReactNode
+  /** ノード右端に表示するバッジのカスタムレンダラー */
   renderBadge?: (node: TreeNode) => React.ReactNode
+  /** 右クリックメニューの項目を返す関数。選択中ノード群が渡される */
   contextMenuItems?: (nodes: TreeNode[]) => MenuItemDef[]
-  /** ツリーフィルタバーを表示 */
+  /** ツリーフィルタバーを表示するか */
   showFilterBar?: boolean
   /** コントローラの参照を受け取るコールバック（QuickOpen等で使用） */
   onControllerReady?: (controller: FileTreeController) => void
+  /** ルート要素に付与するCSSクラス */
   className?: string
+  /** ルート要素に付与するインラインスタイル */
   style?: React.CSSProperties
 }
 
@@ -116,8 +129,20 @@ function FileExplorerInner({
 }
 
 /**
- * デフォルトのファイルエクスプローラーコンポーネント。
- * TreeProvider を内包しているので、これ単体で使える。
+ * TreeProvider を内包するオールインワンのファイルエクスプローラーコンポーネント。
+ * これ単体でファイルツリーUIが動作する。仮想スクロール対応。
+ *
+ * @example
+ * ```tsx
+ * import { FileExplorer } from 'momoi-explorer/ui'
+ * import 'momoi-explorer/ui/style.css'
+ *
+ * <FileExplorer
+ *   adapter={myAdapter}
+ *   rootPath="/home/user/project"
+ *   onOpen={(path) => openFile(path)}
+ * />
+ * ```
  */
 export function FileExplorer({
   adapter,

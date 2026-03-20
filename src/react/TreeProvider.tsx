@@ -5,16 +5,28 @@ import { createFileTree } from '../core/tree'
 import { TreeContext } from './context'
 import type { ReactNode } from 'react'
 
+/** {@link TreeProvider} に渡すprops */
 export interface TreeProviderProps {
+  /** ファイルシステム操作の実装 */
   adapter: FileSystemAdapter
+  /** ツリーのルートディレクトリパス */
   rootPath: string
+  /** ファイル/フォルダのソート関数 */
   sort?: FileTreeOptions['sort']
+  /** 表示対象を絞り込むフィルタ関数 */
   filter?: FileTreeOptions['filter']
+  /** ファイル監視の設定 */
   watchOptions?: FileTreeOptions['watchOptions']
+  /** ツリー操作イベントのコールバック */
   onEvent?: (event: TreeEvent) => void
   children: ReactNode
 }
 
+/**
+ * ファイルツリーのコンテキストプロバイダー。
+ * 内部で `createFileTree` を呼び出し、マウント時に `loadRoot` でルートを読み込む。
+ * 子コンポーネントから `useFileTree` / `useTreeNode` でツリー状態にアクセスできる。
+ */
 export function TreeProvider({
   adapter,
   rootPath,

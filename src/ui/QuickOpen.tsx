@@ -3,15 +3,27 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FileEntry, FileTreeController } from '../core/types'
 import { fuzzyFind } from '../core/search'
 
+/** {@link QuickOpen} に渡すprops */
 export interface QuickOpenProps {
+  /** ファイル一覧の収集に使用するコントローラ。FileExplorer の `onControllerReady` で取得可能 */
   controller: FileTreeController
+  /** ダイアログの表示/非表示 */
   isOpen: boolean
+  /** ダイアログを閉じる際のコールバック */
   onClose(): void
+  /** ファイル選択時のコールバック */
   onSelect(entry: FileEntry): void
+  /** 入力欄のプレースホルダー。デフォルト: `"Search files by name..."` */
   placeholder?: string
+  /** 検索結果の最大表示件数。デフォルト: `50` */
   maxResults?: number
 }
 
+/**
+ * VSCode風のクイックオープンダイアログ。
+ * ツリー内の全ファイルからファジー検索し、矢印キーで選択、Enter で確定する。
+ * Esc またはオーバーレイクリックで閉じる。
+ */
 export function QuickOpen({
   controller,
   isOpen,

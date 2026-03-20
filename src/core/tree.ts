@@ -65,6 +65,25 @@ function basename(path: string): string {
   return idx === -1 ? path : path.slice(idx + 1)
 }
 
+/**
+ * ヘッドレスファイルツリーコントローラを生成する。
+ * フレームワーク非依存。React等で使う場合は `momoi-explorer/react` のTreeProviderを推奨。
+ *
+ * @param options - ツリーの初期化オプション
+ * @returns FileTreeController インスタンス
+ *
+ * @example
+ * ```ts
+ * import { createFileTree } from 'momoi-explorer'
+ *
+ * const tree = createFileTree({
+ *   adapter: myAdapter,
+ *   rootPath: '/home/user/project',
+ *   onEvent: (e) => console.log(e),
+ * })
+ * await tree.loadRoot()
+ * ```
+ */
 export function createFileTree(options: FileTreeOptions): FileTreeController {
   const { adapter, rootPath, onEvent } = options
   let sortFn = options.sort ?? defaultSort
