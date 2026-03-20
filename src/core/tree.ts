@@ -232,8 +232,16 @@ export function createFileTree(options: FileTreeOptions): FileTreeController {
     },
 
     collapse(path: string): void {
+      const sep = path.includes('\\') ? '\\' : '/'
+      const prefix = path + sep
       state.expandedPaths = new Set(state.expandedPaths)
       state.expandedPaths.delete(path)
+      // 子孫の展開状態もクリア
+      for (const p of state.expandedPaths) {
+        if (p.startsWith(prefix)) {
+          state.expandedPaths.delete(p)
+        }
+      }
       notify()
       emit({ type: 'collapse', path })
     },
