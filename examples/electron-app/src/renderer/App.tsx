@@ -70,9 +70,30 @@ export function App(): React.JSX.Element {
   }, [addLog])
 
   const contextMenuItems = (nodes: TreeNode[]): MenuItemDef[] => {
+    // 空白エリア右クリック → New File / New Folder のみ
+    if (nodes.length === 0) {
+      return [
+        {
+          id: 'new-file',
+          label: 'New File',
+          action: () => {
+            controllerRef?.startCreate(rootPath!, false)
+            addLog('menu:new-file', rootPath!)
+          },
+        },
+        {
+          id: 'new-folder',
+          label: 'New Folder',
+          action: () => {
+            controllerRef?.startCreate(rootPath!, true)
+            addLog('menu:new-folder', rootPath!)
+          },
+        },
+      ]
+    }
+
     const target = nodes[0]
-    const sep = target?.path.includes('\\') ? '\\' : '/'
-    const parentPath = target?.isDirectory ? target.path : (target?.path.replace(/[/\\][^/\\]+$/, '') ?? rootPath!)
+    const parentPath = target.isDirectory ? target.path : target.path.replace(/[/\\][^/\\]+$/, '')
 
     return [
       {

@@ -133,16 +133,25 @@ function FileExplorerInner({
     ctxMenu.show(e, path)
   }, [controller, selectedPaths, ctxMenu])
 
+  // 空白エリアの右クリック（nodes=[]で呼ばれる）
+  const handleBackgroundContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    controller.clearSelection()
+    ctxMenu.show(e, '')
+  }, [controller, ctxMenu])
+
   const menuItems = useMemo(() => {
     if (!ctxMenu.isVisible || !contextMenuItems) return []
+    // targetPath が空 = 空白エリアクリック → nodes=[]
+    if (ctxMenu.targetPath === '') return contextMenuItems([])
     const targetNodes = flatList
       .filter((f) => selectedPaths.has(f.node.path))
       .map((f) => f.node)
     return contextMenuItems(targetNodes)
-  }, [ctxMenu.isVisible, contextMenuItems, flatList, selectedPaths])
+  }, [ctxMenu.isVisible, ctxMenu.targetPath, contextMenuItems, flatList, selectedPaths])
 
   return (
-    <>
+    <div style={{ height: '100%' }} onContextMenu={handleBackgroundContextMenu}>
       {showFilterBar && <TreeFilterBar />}
       <Virtuoso
         totalCount={rowItems.length}
@@ -193,7 +202,7 @@ function FileExplorerInner({
           onClose={ctxMenu.hide}
         />
       )}
-    </>
+    </div>
   )
 }
 
