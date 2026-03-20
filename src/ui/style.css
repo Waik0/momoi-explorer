@@ -110,6 +110,20 @@
   height: var(--me-icon-size);
 }
 
+/* material-file-icons のSVGラッパー */
+.momoi-explorer-icon-inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--me-icon-size);
+  height: var(--me-icon-size);
+}
+
+.momoi-explorer-icon-inner svg {
+  width: var(--me-icon-size);
+  height: var(--me-icon-size);
+}
+
 /* ファイル名 */
 .momoi-explorer-name {
   flex: 1;
@@ -280,6 +294,20 @@
 .momoi-explorer-quickopen-item:hover,
 .momoi-explorer-quickopen-item[data-selected='true'] {
   background: var(--me-selected-bg);
+}
+
+.momoi-explorer-quickopen-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.momoi-explorer-quickopen-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 .momoi-explorer-quickopen-name {
