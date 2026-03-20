@@ -1,34 +1,34 @@
 # momoi-explorer
 
-ヘッドレスファイルエクスプローラーライブラリ。フレームワーク非依存のコア + React バインディング + デフォルト UI の3層構成。
+A headless file explorer library. Framework-agnostic core + React bindings + default UI in a 3-layer architecture.
 
-## インストール
+## Install
 
 ```bash
 npm install momoi-explorer
 ```
 
-## アーキテクチャ
+## Architecture
 
-3つのエントリポイントを持つ段階的なアーキテクチャ:
+Three entry points with a layered architecture:
 
-| エントリポイント | 用途 | React必須 |
+| Entry Point | Purpose | Requires React |
 |---|---|---|
-| `momoi-explorer` | コアエンジン（フレームワーク非依存） | No |
-| `momoi-explorer/react` | React バインディング（hooks + context） | Yes |
-| `momoi-explorer/ui` | デフォルト UI コンポーネント | Yes |
+| `momoi-explorer` | Core engine (framework-agnostic) | No |
+| `momoi-explorer/react` | React bindings (hooks + context) | Yes |
+| `momoi-explorer/ui` | Default UI components | Yes |
 
-## クイックスタート
+## Quick Start
 
-### 1. FileSystemAdapter を実装する
+### 1. Implement a FileSystemAdapter
 
-全ての始まりは `FileSystemAdapter` の実装。`readDir` のみ必須で、他のメソッドはオプション（実装すると対応機能が有効になる）。
+Everything starts with implementing `FileSystemAdapter`. Only `readDir` is required; other methods are optional (implementing them enables the corresponding features).
 
 ```ts
 import type { FileSystemAdapter } from 'momoi-explorer'
 
 const adapter: FileSystemAdapter = {
-  // 必須: ディレクトリの中身を返す
+  // Required: return directory contents
   async readDir(dirPath) {
     const entries = await fs.readdir(dirPath, { withFileTypes: true })
     return entries.map(e => ({
@@ -37,23 +37,23 @@ const adapter: FileSystemAdapter = {
       isDirectory: e.isDirectory(),
     }))
   },
-  // オプション: リネーム
+  // Optional: rename
   async rename(oldPath, newPath) {
     await fs.rename(oldPath, newPath)
   },
-  // オプション: 削除
+  // Optional: delete
   async delete(paths) {
     for (const p of paths) await fs.rm(p, { recursive: true })
   },
-  // オプション: ファイル作成
+  // Optional: create file
   async createFile(parentPath, name) {
     await fs.writeFile(path.join(parentPath, name), '')
   },
-  // オプション: フォルダ作成
+  // Optional: create directory
   async createDir(parentPath, name) {
     await fs.mkdir(path.join(parentPath, name))
   },
-  // オプション: ファイル監視（デバウンス・合体はコアが行う）
+  // Optional: file watching (debounce & coalescing handled by core)
   watch(dirPath, callback) {
     const watcher = fs.watch(dirPath, { recursive: true }, (event, filename) => {
       callback([{ type: event === 'rename' ? 'create' : 'modify', path: filename, isDirectory: false }])
@@ -63,7 +63,7 @@ const adapter: FileSystemAdapter = {
 }
 ```
 
-### 2a. デフォルト UI を使う（最も簡単）
+### 2a. Use the Default UI (easiest)
 
 ```tsx
 import { FileExplorer } from 'momoi-explorer/ui'
@@ -82,7 +82,7 @@ function App() {
 }
 ```
 
-### 2b. React hooks でカスタム UI を構築する
+### 2b. Build Custom UI with React Hooks
 
 ```tsx
 import { TreeProvider, useFileTree, useTreeNode } from 'momoi-explorer/react'
@@ -112,7 +112,7 @@ function MyCustomTree() {
 }
 ```
 
-### 2c. コアのみ使用（フレームワーク非依存）
+### 2c. Core Only (framework-agnostic)
 
 ```ts
 import { createFileTree } from 'momoi-explorer'
@@ -123,143 +123,143 @@ const tree = createFileTree({
   onEvent: (e) => console.log(e),
 })
 
-// 状態購読
+// Subscribe to state changes
 tree.subscribe((state) => {
   console.log('nodes:', state.rootNodes)
   console.log('flatList:', state.flatList)
 })
 
-// ツリーを読み込み
+// Load the tree
 await tree.loadRoot()
 
-// 操作
+// Operations
 await tree.expand('/home/user/project/src')
 tree.select('/home/user/project/src/index.ts')
 tree.setSearchQuery('config')
 
-// 後始末
+// Cleanup
 tree.destroy()
 ```
 
-## API リファレンス
+## API Reference
 
-### コア層 (`momoi-explorer`)
+### Core (`momoi-explorer`)
 
 #### `createFileTree(options): FileTreeController`
 
-ヘッドレスファイルツリーのメインエントリポイント。
+Main entry point for the headless file tree.
 
 **FileTreeOptions:**
-| プロパティ | 型 | 説明 |
+| Property | Type | Description |
 |---|---|---|
-| `adapter` | `FileSystemAdapter` | ファイルシステムアダプタ（必須） |
-| `rootPath` | `string` | ルートディレクトリの絶対パス |
-| `sort` | `(a, b) => number` | カスタムソート関数 |
-| `filter` | `(entry) => boolean` | カスタムフィルタ関数 |
-| `watchOptions` | `WatchOptions` | ファイル監視設定 |
-| `onEvent` | `(event: TreeEvent) => void` | イベントコールバック |
+| `adapter` | `FileSystemAdapter` | File system adapter (required) |
+| `rootPath` | `string` | Absolute path to the root directory |
+| `sort` | `(a, b) => number` | Custom sort function |
+| `filter` | `(entry) => boolean` | Custom filter function |
+| `watchOptions` | `WatchOptions` | File watching options |
+| `onEvent` | `(event: TreeEvent) => void` | Event callback |
 
-**FileTreeController のメソッド:**
+**FileTreeController Methods:**
 
-| メソッド | 説明 |
+| Method | Description |
 |---|---|
-| `getState()` | 現在の TreeState を取得 |
-| `subscribe(listener)` | 状態変更を購読。unsubscribe関数を返す |
-| `loadRoot()` | ルートを読み込み・初期化（最初に必ず呼ぶ） |
-| `expand(path)` | ディレクトリを展開 |
-| `collapse(path)` | ディレクトリを折りたたみ |
-| `toggleExpand(path)` | 展開/折りたたみをトグル |
-| `expandTo(path)` | 指定パスまで祖先をすべて展開 |
-| `select(path, mode?)` | ノードを選択（mode: 'replace' / 'toggle' / 'range'） |
-| `selectAll()` | 全ノードを選択 |
-| `clearSelection()` | 選択解除 |
-| `startRename(path)` | リネームモード開始 |
-| `commitRename(newName)` | リネーム確定 |
-| `cancelRename()` | リネームキャンセル |
-| `startCreate(parentPath, isDirectory, insertAfterPath?)` | インライン新規作成モード開始（insertAfterPath: 入力行の挿入位置） |
-| `commitCreate(name)` | 新規作成確定 |
-| `cancelCreate()` | 新規作成キャンセル |
-| `createFile(parentPath, name)` | ファイル作成 |
-| `createDir(parentPath, name)` | フォルダ作成 |
-| `deleteSelected()` | 選択中のアイテムを削除 |
-| `refresh(path?)` | ツリーをリフレッシュ（展開状態は保持） |
-| `setSearchQuery(query)` | ファジー検索クエリ設定（nullで解除） |
-| `collectAllFiles()` | 全ファイルを再帰収集（QuickOpen用） |
-| `setFilter(fn)` | フィルタ関数を動的変更 |
-| `setSort(fn)` | ソート関数を動的変更 |
-| `destroy()` | コントローラ破棄（監視停止・購読解除） |
+| `getState()` | Get current TreeState |
+| `subscribe(listener)` | Subscribe to state changes. Returns unsubscribe function |
+| `loadRoot()` | Load and initialize root (must be called first) |
+| `expand(path)` | Expand a directory |
+| `collapse(path)` | Collapse a directory |
+| `toggleExpand(path)` | Toggle expand/collapse |
+| `expandTo(path)` | Expand all ancestors up to the given path |
+| `select(path, mode?)` | Select a node (mode: 'replace' / 'toggle' / 'range') |
+| `selectAll()` | Select all nodes |
+| `clearSelection()` | Clear selection |
+| `startRename(path)` | Enter rename mode |
+| `commitRename(newName)` | Commit rename |
+| `cancelRename()` | Cancel rename |
+| `startCreate(parentPath, isDirectory, insertAfterPath?)` | Enter inline creation mode (insertAfterPath: position for the input row) |
+| `commitCreate(name)` | Commit creation |
+| `cancelCreate()` | Cancel creation |
+| `createFile(parentPath, name)` | Create a file |
+| `createDir(parentPath, name)` | Create a directory |
+| `deleteSelected()` | Delete selected items |
+| `refresh(path?)` | Refresh the tree (preserves expanded state) |
+| `setSearchQuery(query)` | Set fuzzy search query (null to clear) |
+| `collectAllFiles()` | Recursively collect all files (for QuickOpen) |
+| `setFilter(fn)` | Dynamically change the filter function |
+| `setSort(fn)` | Dynamically change the sort function |
+| `destroy()` | Destroy the controller (stops watching, clears subscriptions) |
 
-#### ユーティリティ関数
+#### Utility Functions
 
-| 関数 | 説明 |
+| Function | Description |
 |---|---|
-| `flattenTree(nodes, expandedPaths, matchingPaths?)` | ツリーをフラットリストに変換 |
-| `computeSelection(current, anchor, target, mode, flatList)` | 選択状態を計算 |
-| `fuzzyMatch(query, target)` | ファジーマッチ（match + score） |
-| `fuzzyFind(files, query, maxResults?)` | スコア順にファジー検索 |
-| `findMatchingPaths(nodes, query)` | マッチするパスのSetを返す |
-| `coalesceEvents(raw)` | 生イベントを合体処理 |
-| `createEventProcessor(callback, options?)` | デバウンス付きイベントプロセッサ |
-| `defaultSort(a, b)` | デフォルトソート（フォルダ優先・名前昇順） |
-| `defaultFilter(entry)` | デフォルトフィルタ（全表示） |
-| `ExplorerCommands` | エクスプローラーのコマンドID定数（DELETE, RENAME等） |
-| `defaultExplorerKeybindings` | デフォルトキーバインド定義配列（momoi-keybind用） |
+| `flattenTree(nodes, expandedPaths, matchingPaths?)` | Convert tree to flat list |
+| `computeSelection(current, anchor, target, mode, flatList)` | Compute selection state |
+| `fuzzyMatch(query, target)` | Fuzzy match (match + score) |
+| `fuzzyFind(files, query, maxResults?)` | Fuzzy search sorted by score |
+| `findMatchingPaths(nodes, query)` | Return Set of matching paths |
+| `coalesceEvents(raw)` | Coalesce raw watch events |
+| `createEventProcessor(callback, options?)` | Event processor with debounce |
+| `defaultSort(a, b)` | Default sort (directories first, name ascending) |
+| `defaultFilter(entry)` | Default filter (show all) |
+| `ExplorerCommands` | Explorer command ID constants (DELETE, RENAME, etc.) |
+| `defaultExplorerKeybindings` | Default keybinding definitions (for momoi-keybind) |
 
-### React層 (`momoi-explorer/react`)
+### React (`momoi-explorer/react`)
 
-| エクスポート | 種別 | 説明 |
+| Export | Kind | Description |
 |---|---|---|
-| `TreeProvider` | コンポーネント | ファイルツリーのコンテキストプロバイダー。内部で `createFileTree` + `loadRoot` を行う |
-| `useFileTree()` | Hook | ツリー全体の状態とコントローラを返す |
-| `useTreeNode(path)` | Hook | 個別ノードの展開/選択/リネーム状態を返す（見つからない場合 null） |
-| `useContextMenu()` | Hook | 右クリックメニューの表示制御（show/hide + 座標管理） |
-| `useExplorerKeybindings(inputService)` | Hook | momoi-keybind連携。エクスプローラーのコマンドハンドラーを登録 |
-| `useExplorerFocus(inputService)` | Hook | フォーカス状態をmomoi-keybindコンテキストに連動 |
-| `useTreeContext()` | Hook | TreeContext の生の値を取得（通常は useFileTree を使う） |
+| `TreeProvider` | Component | File tree context provider. Calls `createFileTree` + `loadRoot` internally |
+| `useFileTree()` | Hook | Returns full tree state and controller |
+| `useTreeNode(path)` | Hook | Returns expand/select/rename state for a node (null if not found) |
+| `useContextMenu()` | Hook | Context menu visibility control (show/hide + position) |
+| `useExplorerKeybindings(inputService)` | Hook | momoi-keybind integration. Registers explorer command handlers |
+| `useExplorerFocus(inputService)` | Hook | Syncs focus state with momoi-keybind context |
+| `useTreeContext()` | Hook | Raw TreeContext value (usually use useFileTree instead) |
 
-### UI層 (`momoi-explorer/ui`)
+### UI (`momoi-explorer/ui`)
 
-| エクスポート | 説明 |
+| Export | Description |
 |---|---|
-| `FileExplorer` | オールインワンコンポーネント（TreeProvider内包、仮想スクロール、コンテキストメニュー対応） |
-| `TreeNodeRow` | ツリーの1行コンポーネント（アイコン、インデント、選択、リネーム対応） |
-| `ContextMenu` | 右クリックメニュー（外側クリック/Escで閉じる） |
-| `InlineRename` | インライン名前変更input（Enter確定、Escキャンセル） |
-| `TreeFilterBar` | ファジー検索フィルタバー |
-| `QuickOpen` | VSCode風クイックオープンダイアログ（Ctrl+P相当） |
+| `FileExplorer` | All-in-one component (includes TreeProvider, virtual scrolling, context menu) |
+| `TreeNodeRow` | Single tree row (icon, indent, selection, rename) |
+| `ContextMenu` | Right-click menu (closes on outside click/Esc) |
+| `InlineRename` | Inline rename input (Enter to confirm, Esc to cancel) |
+| `TreeFilterBar` | Fuzzy search filter bar |
+| `QuickOpen` | VSCode-style quick open dialog (Ctrl+P equivalent) |
 
-**スタイル:**
+**Styles:**
 
 ```ts
 import 'momoi-explorer/ui/style.css'
 ```
 
-VSCode風ダークテーマ。CSS変数やクラス名（`.momoi-explorer-*`）でカスタマイズ可能。
+VSCode-style dark theme. Customizable via CSS variables and class names (`.momoi-explorer-*`).
 
-### FileExplorer の Props
+### FileExplorer Props
 
 ```tsx
 <FileExplorer
-  adapter={adapter}            // FileSystemAdapter（必須）
-  rootPath="/path/to/dir"      // ルートパス（必須）
-  sort={(a, b) => ...}         // カスタムソート
-  filter={(entry) => ...}      // カスタムフィルタ
-  watchOptions={{ ... }}       // ファイル監視設定
-  onEvent={(e) => ...}         // ツリーイベントコールバック
-  onOpen={(path) => ...}       // ファイルダブルクリック時
-  renderIcon={(node, expanded) => ...}   // カスタムアイコン
-  renderBadge={(node) => ...}  // カスタムバッジ（git status等）
-  contextMenuItems={(nodes) => [...]}    // コンテキストメニュー項目
-  showFilterBar                // フィルタバー表示
-  onControllerReady={(ctrl) => ...}      // コントローラ参照の取得
-  inputService={inputService}  // momoi-keybindのInputServiceインスタンス（オプション）
-  onKeyDown={(e) => ...}       // momoi-keybindを使わない場合のキーイベントハンドラ
-  className="my-explorer"      // CSSクラス
-  style={{ height: 400 }}      // インラインスタイル
+  adapter={adapter}            // FileSystemAdapter (required)
+  rootPath="/path/to/dir"      // Root path (required)
+  sort={(a, b) => ...}         // Custom sort
+  filter={(entry) => ...}      // Custom filter
+  watchOptions={{ ... }}       // File watching options
+  onEvent={(e) => ...}         // Tree event callback
+  onOpen={(path) => ...}       // File double-click handler
+  renderIcon={(node, expanded) => ...}   // Custom icon renderer
+  renderBadge={(node) => ...}  // Custom badge renderer (e.g. git status)
+  contextMenuItems={(nodes) => [...]}    // Context menu items
+  showFilterBar                // Show filter bar
+  onControllerReady={(ctrl) => ...}      // Get controller reference
+  inputService={inputService}  // momoi-keybind InputService instance (optional)
+  onKeyDown={(e) => ...}       // Key event handler when not using momoi-keybind
+  className="my-explorer"      // CSS class
+  style={{ height: 400 }}      // Inline styles
 />
 ```
 
-### QuickOpen の使い方
+### QuickOpen Usage
 
 ```tsx
 import { FileExplorer, QuickOpen } from 'momoi-explorer/ui'
@@ -288,14 +288,14 @@ function App() {
 }
 ```
 
-## 主要な型
+## Key Types
 
 ```ts
 interface FileEntry {
-  name: string          // ファイル名
-  path: string          // 絶対パス
-  isDirectory: boolean  // ディレクトリか
-  meta?: Record<string, unknown>  // 拡張用メタデータ
+  name: string          // File name
+  path: string          // Absolute path
+  isDirectory: boolean  // Is directory
+  meta?: Record<string, unknown>  // Extension metadata
 }
 
 interface TreeNode extends FileEntry {
@@ -333,32 +333,32 @@ type TreeEvent =
   | { type: 'external-change'; changes: WatchEvent[] }
 ```
 
-## ファイル監視
+## File Watching
 
-`adapter.watch` を実装すると自動でファイル監視が有効になる。生イベントをそのまま投げるだけでよく、以下の処理はコアが自動で行う:
+Implementing `adapter.watch` automatically enables file watching. Just emit raw events; the core handles:
 
-- **デバウンス** (75ms, VSCode準拠)
-- **イベント合体**: rename → delete+create、delete+create(同一パス) → modify、親フォルダ削除時に子イベント除去
-- **スロットリング**: 大量イベント時にチャンク分割（500件/200ms間隔）
+- **Debounce** (75ms, VSCode-compatible)
+- **Event coalescing**: rename → delete+create, delete+create (same path) → modify, child events removed on parent delete
+- **Throttling**: Chunk splitting for large batches (500 events / 200ms interval)
 
 ```ts
 const tree = createFileTree({
   adapter,
   rootPath: '/project',
   watchOptions: {
-    debounceMs: 100,        // デフォルト: 75
-    coalesce: true,         // デフォルト: true
+    debounceMs: 100,        // Default: 75
+    coalesce: true,         // Default: true
     throttle: {
-      maxChunkSize: 1000,   // デフォルト: 500
-      delayMs: 300,         // デフォルト: 200
+      maxChunkSize: 1000,   // Default: 500
+      delayMs: 300,         // Default: 200
     },
   },
 })
 ```
 
-## キーバインド連携（momoi-keybind）
+## Keybinding Integration (momoi-keybind)
 
-`momoi-keybind` がインストールされている場合、`inputService` prop でキーバインドを有効化できる。`momoi-keybind` はオプションの peerDependency。
+When `momoi-keybind` is installed, pass an `inputService` prop to enable keybindings. `momoi-keybind` is an optional peer dependency.
 
 ```tsx
 import { InputService } from 'momoi-keybind'
@@ -377,31 +377,31 @@ inputService.start()
 />
 ```
 
-**デフォルトキーバインド:**
+**Default Keybindings:**
 
-| キー | コマンド |
+| Key | Command |
 |---|---|
-| `Delete` | 選択アイテムを削除 |
-| `F2` | リネーム |
-| `Ctrl+N` | 新規ファイル作成 |
-| `Ctrl+Shift+N` | 新規フォルダ作成 |
-| `Ctrl+R` | リフレッシュ |
-| `Ctrl+Shift+E` | 全フォルダ折りたたみ |
-| `Ctrl+A` | 全選択 |
-| `Ctrl+Shift+C` | パスコピー |
+| `Delete` | Delete selected items |
+| `F2` | Rename |
+| `Ctrl+N` | New file |
+| `Ctrl+Shift+N` | New folder |
+| `Ctrl+R` | Refresh |
+| `Ctrl+Shift+E` | Collapse all folders |
+| `Ctrl+A` | Select all |
+| `Ctrl+Shift+C` | Copy path |
 
-ユーザー側で上書き・追加・無効化が可能:
+Override, add, or disable keybindings on the user side:
 
 ```ts
 const inputService = new InputService({
   defaultKeybindings: defaultExplorerKeybindings,
   userKeybindings: [
-    { key: 'F2', command: 'myApp.quickPreview', when: 'explorerFocus' }, // 上書き
-    { key: '', command: '-explorer.delete' },  // 無効化
+    { key: 'F2', command: 'myApp.quickPreview', when: 'explorerFocus' }, // Override
+    { key: '', command: '-explorer.delete' },  // Disable
   ],
 })
 ```
 
-## ライセンス
+## License
 
 MIT
