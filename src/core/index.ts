@@ -5,6 +5,8 @@ export { computeSelection } from './selection'
 export { defaultSort } from './sort'
 export { defaultFilter } from './filter'
 export { fuzzyMatch, fuzzyFind, findMatchingPaths } from './search'
+export { ExplorerCommands, defaultExplorerKeybindings } from './keybindings'
+export type { ExplorerKeybindingEntry, ExplorerCommandId } from './keybindings'
 export type {
   FileSystemAdapter,
   FileEntry,

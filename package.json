@@ -64,13 +64,17 @@
   ],
   "peerDependencies": {
     "react": ">=18",
-    "react-dom": ">=18"
+    "react-dom": ">=18",
+    "momoi-keybind": ">=1.0.0"
   },
   "peerDependenciesMeta": {
     "react": {
       "optional": true
     },
     "react-dom": {
+      "optional": true
+    },
+    "momoi-keybind": {
       "optional": true
     }
   },

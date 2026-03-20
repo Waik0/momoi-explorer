@@ -5,6 +5,8 @@ import type { FileSystemAdapter, FileTreeController, FileTreeOptions, MenuItemDe
 import { TreeProvider } from '../react/TreeProvider'
 import { useFileTree } from '../react/useFileTree'
 import { useContextMenu } from '../react/useContextMenu'
+import { useExplorerKeybindings, type InputServiceLike } from '../react/useExplorerKeybindings'
+import { useExplorerFocus } from '../react/useExplorerFocus'
 import { TreeNodeRow } from './TreeNodeRow'
 import { ContextMenu } from './ContextMenu'
 import { TreeFilterBar } from './TreeFilterBar'
@@ -36,6 +38,10 @@ export interface FileExplorerProps {
   showFilterBar?: boolean
   /** コントローラの参照を受け取るコールバック（QuickOpen等で使用） */
   onControllerReady?: (controller: FileTreeController) => void
+  /** momoi-keybindのInputServiceインスタンス。キーバインドを有効化する */
+  inputService?: InputServiceLike | null
+  /** momoi-keybindを使わない場合のキーボードイベントハンドラ */
+  onKeyDown?: (e: React.KeyboardEvent) => void
   /** ルート要素に付与するCSSクラス */
   className?: string
   /** ルート要素に付与するインラインスタイル */
@@ -66,12 +72,19 @@ function FileExplorerInner({
   contextMenuItems,
   showFilterBar,
   onControllerReady,
-}: Pick<FileExplorerProps, 'onOpen' | 'renderIcon' | 'renderBadge' | 'contextMenuItems' | 'showFilterBar' | 'onControllerReady'>): React.JSX.Element {
+  inputService,
+  onKeyDown,
+}: Pick<FileExplorerProps, 'onOpen' | 'renderIcon' | 'renderBadge' | 'contextMenuItems' | 'showFilterBar' | 'onControllerReady' | 'inputService' | 'onKeyDown'>): React.JSX.Element {
   const { flatList, expandedPaths, selectedPaths, renamingPath, creatingState, rootPath, controller } = useFileTree()
 
   useEffect(() => {
     onControllerReady?.(controller)
   }, [controller, onControllerReady])
+
+  // momoi-keybind接続
+  useExplorerKeybindings(inputService ?? null)
+  const focusProps = useExplorerFocus(inputService ?? null)
+
   const ctxMenu = useContextMenu()
 
   // flatListに新規作成行を挿入したリストを生成
@@ -151,7 +164,14 @@ function FileExplorerInner({
   }, [ctxMenu.isVisible, ctxMenu.targetPath, contextMenuItems, flatList, selectedPaths])
 
   return (
-    <div style={{ height: '100%' }} onContextMenu={handleBackgroundContextMenu}>
+    <div
+      style={{ height: '100%', outline: 'none' }}
+      onContextMenu={handleBackgroundContextMenu}
+      onKeyDown={onKeyDown}
+      onFocus={focusProps.onFocus}
+      onBlur={focusProps.onBlur}
+      tabIndex={focusProps.tabIndex}
+    >
       {showFilterBar && <TreeFilterBar />}
       <Virtuoso
         totalCount={rowItems.length}
@@ -240,6 +260,8 @@ export function FileExplorer({
   contextMenuItems,
   showFilterBar,
   onControllerReady,
+  inputService,
+  onKeyDown,
   className,
   style,
 }: FileExplorerProps): React.JSX.Element {
@@ -260,6 +282,8 @@ export function FileExplorer({
           contextMenuItems={contextMenuItems}
           showFilterBar={showFilterBar}
           onControllerReady={onControllerReady}
+          inputService={inputService}
+          onKeyDown={onKeyDown}
         />
       </TreeProvider>
     </div>
