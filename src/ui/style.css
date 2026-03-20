@@ -1,0 +1,184 @@
+/* momoi-explorer default dark theme */
+
+.momoi-explorer {
+  --me-bg: #1e1e1e;
+  --me-fg: #cccccc;
+  --me-fg-muted: #888888;
+  --me-border: #333333;
+  --me-hover-bg: #2a2d2e;
+  --me-selected-bg: #094771;
+  --me-selected-fg: #ffffff;
+  --me-focus-border: #007fd4;
+  --me-indent-guide: #404040;
+  --me-scrollbar-bg: #1e1e1e;
+  --me-scrollbar-thumb: #424242;
+  --me-ctx-bg: #252526;
+  --me-ctx-hover-bg: #094771;
+  --me-ctx-border: #454545;
+  --me-ctx-fg: #cccccc;
+  --me-ctx-shortcut-fg: #888888;
+  --me-ctx-separator: #454545;
+  --me-rename-bg: #1e1e1e;
+  --me-rename-border: #007fd4;
+  --me-row-height: 22px;
+  --me-indent-size: 16px;
+  --me-icon-size: 16px;
+  --me-font-size: 13px;
+  --me-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--me-bg);
+  color: var(--me-fg);
+  font-family: var(--me-font-family);
+  font-size: var(--me-font-size);
+  user-select: none;
+}
+
+/* ツリー行 */
+.momoi-explorer-row {
+  display: flex;
+  align-items: center;
+  height: var(--me-row-height);
+  padding-right: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.momoi-explorer-row:hover {
+  background: var(--me-hover-bg);
+}
+
+.momoi-explorer-row[data-selected='true'] {
+  background: var(--me-selected-bg);
+  color: var(--me-selected-fg);
+}
+
+/* インデント */
+.momoi-explorer-indent {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.momoi-explorer-indent-guide {
+  width: var(--me-indent-size);
+  height: var(--me-row-height);
+  border-right: 1px solid var(--me-indent-guide);
+  box-sizing: border-box;
+}
+
+/* 展開アイコン */
+.momoi-explorer-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--me-indent-size);
+  height: var(--me-row-height);
+  flex-shrink: 0;
+}
+
+.momoi-explorer-chevron svg {
+  width: 10px;
+  height: 10px;
+  fill: var(--me-fg-muted);
+  transition: transform 0.1s ease;
+}
+
+.momoi-explorer-chevron[data-expanded='true'] svg {
+  transform: rotate(90deg);
+}
+
+.momoi-explorer-chevron[data-is-dir='false'] {
+  visibility: hidden;
+}
+
+/* ファイルアイコン */
+.momoi-explorer-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--me-icon-size);
+  height: var(--me-icon-size);
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.momoi-explorer-icon svg {
+  width: var(--me-icon-size);
+  height: var(--me-icon-size);
+}
+
+/* ファイル名 */
+.momoi-explorer-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: var(--me-row-height);
+}
+
+/* バッジ */
+.momoi-explorer-badge {
+  margin-left: auto;
+  padding-left: 8px;
+  flex-shrink: 0;
+}
+
+/* インラインリネーム */
+.momoi-explorer-rename-input {
+  flex: 1;
+  height: calc(var(--me-row-height) - 4px);
+  background: var(--me-rename-bg);
+  color: var(--me-fg);
+  border: 1px solid var(--me-rename-border);
+  font-family: var(--me-font-family);
+  font-size: var(--me-font-size);
+  padding: 0 4px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* コンテキストメニュー */
+.momoi-explorer-context-menu {
+  position: fixed;
+  z-index: 9999;
+  min-width: 160px;
+  background: var(--me-ctx-bg);
+  border: 1px solid var(--me-ctx-border);
+  border-radius: 4px;
+  padding: 4px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.momoi-explorer-context-menu-item {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 24px 0 12px;
+  cursor: pointer;
+  color: var(--me-ctx-fg);
+  gap: 16px;
+}
+
+.momoi-explorer-context-menu-item:hover {
+  background: var(--me-ctx-hover-bg);
+  color: var(--me-selected-fg);
+}
+
+.momoi-explorer-context-menu-item[data-disabled='true'] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.momoi-explorer-context-menu-shortcut {
+  margin-left: auto;
+  color: var(--me-ctx-shortcut-fg);
+  font-size: 12px;
+}
+
+.momoi-explorer-context-menu-separator {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--me-ctx-separator);
+}

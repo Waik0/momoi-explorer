@@ -1,0 +1,20 @@
+export { createFileTree } from './tree'
+export { coalesceEvents, createEventProcessor } from './event-processor'
+export { flattenTree } from './flatten'
+export { computeSelection } from './selection'
+export { defaultSort } from './sort'
+export { defaultFilter } from './filter'
+export type {
+  FileSystemAdapter,
+  FileEntry,
+  TreeNode,
+  FlatNode,
+  TreeState,
+  RawWatchEvent,
+  WatchEvent,
+  WatchOptions,
+  TreeEvent,
+  MenuItemDef,
+  FileTreeOptions,
+  FileTreeController,
+} from './types'
