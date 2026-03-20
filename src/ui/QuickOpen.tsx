@@ -1,7 +1,13 @@
 import type React from 'react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { getIcon } from 'material-file-icons'
 import type { FileEntry, FileTreeController } from '../core/types'
 import { fuzzyFind } from '../core/search'
+
+function QuickOpenIcon({ filename }: { filename: string }): React.JSX.Element {
+  const svg = useMemo(() => getIcon(filename).svg, [filename])
+  return <span className="momoi-explorer-quickopen-icon" dangerouslySetInnerHTML={{ __html: svg }} />
+}
 
 /** {@link QuickOpen} に渡すprops */
 export interface QuickOpenProps {
@@ -119,6 +125,7 @@ export function QuickOpen({
                   onClose()
                 }}
               >
+                <QuickOpenIcon filename={entry.name} />
                 <span className="momoi-explorer-quickopen-name">{entry.name}</span>
                 <span className="momoi-explorer-quickopen-path">{entry.path}</span>
               </div>

@@ -1,4 +1,6 @@
 import type React from 'react'
+import { useMemo } from 'react'
+import { getIcon } from 'material-file-icons'
 import type { TreeNode } from '../core/types'
 import { InlineRename } from './InlineRename'
 
@@ -24,14 +26,13 @@ function FolderIcon({ isExpanded }: { isExpanded: boolean }): React.JSX.Element 
   )
 }
 
-// デフォルトのファイルアイコン
-function FileIcon(): React.JSX.Element {
-  return (
-    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-      <path d="M3 1h7l3 3v11H3z" fill="none" stroke="#888" strokeWidth="1" />
-      <path d="M10 1v3h3" fill="none" stroke="#888" strokeWidth="1" />
-    </svg>
-  )
+/**
+ * material-file-iconsを使ったファイルアイコン。
+ * ファイル名からアイコンを自動判定しSVGを描画する。
+ */
+function MaterialFileIcon({ filename }: { filename: string }): React.JSX.Element {
+  const svg = useMemo(() => getIcon(filename).svg, [filename])
+  return <span className="momoi-explorer-icon-inner" dangerouslySetInnerHTML={{ __html: svg }} />
 }
 
 /** {@link TreeNodeRow} に渡すprops */
@@ -118,7 +119,7 @@ export function TreeNodeRow({
           ? renderIcon(node, isExpanded)
           : node.isDirectory
             ? <FolderIcon isExpanded={isExpanded} />
-            : <FileIcon />
+            : <MaterialFileIcon filename={node.name} />
         }
       </span>
 

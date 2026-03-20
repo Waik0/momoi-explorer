@@ -9,6 +9,31 @@
 
 ### 設計方針
 - 設計時は導入するアーキテクチャやフォルダ構成を実績あるものから適切に選択する
+- エクスポートするAPIは最小限に。内部実装の詳細は公開しない
+
+### ドキュメント規約（他プロジェクトのClaude対応）
+
+このパッケージは npm install で他プロジェクトに導入される。
+そのプロジェクトの Claude Code が正しくAPIを扱えるよう、以下を常に整備すること。
+
+#### README.md
+- パッケージの目的・アーキテクチャ概要
+- インストール方法
+- クイックスタート（最短で動くコード例）
+- API リファレンス（エクスポートされる関数・型・コンポーネントの一覧と説明）
+- 主要な型定義のスニペット
+- 設定・オプションの表
+
+#### TSDoc
+- エクスポートされる全ての関数・インターフェース・型・コンポーネントに TSDoc を付ける
+- `.d.ts` に反映されるため、他プロジェクトの Claude が `get_hover` で参照できる
+- 日本語で書く。`@param`, `@returns` を適宜使用
+- 最重要API（メインエントリポイント、ユーザー実装インターフェース）には `@example` を付ける
+- 内部関数やプライベートなものには不要
+
+#### 整備タイミング
+- 新しいAPIを追加・変更したら、README.md と TSDoc を同時に更新する
+- ビルド後に `.d.ts` にTSDocが反映されていることを確認する
 
 ## アーキテクチャ
 
@@ -99,3 +124,10 @@ npm run demo:electron # Electronデモ起動
 ### UI層 (`momoi-explorer/ui`)
 - `FileExplorer`, `TreeNodeRow`, `ContextMenu`, `InlineRename`, `TreeFilterBar`, `QuickOpen`
 - CSS: `momoi-explorer/ui/style.css`
+
+## ファイルアイコン
+
+- UI層のデフォルトアイコンは `material-file-icons`（377アイコン・MIT・ゼロ依存）
+- `TreeNodeRow` / `QuickOpen` でファイル名から自動判定してSVGを描画
+- `renderIcon` prop でカスタムアイコンに差し替え可能（ヘッドレス設計を維持）
+- コア層はアイコンに依存しない
