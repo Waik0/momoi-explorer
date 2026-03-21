@@ -105,6 +105,21 @@ function findChildren(path: string, nodes: MockNode[], currentPath: string): Moc
   return null
 }
 
+/** 指定パスのノードを親のchildren配列から除去して返す */
+function removeNode(path: string, nodes: MockNode[], currentPath: string): MockNode | null {
+  for (let i = 0; i < nodes.length; i++) {
+    const childPath = currentPath + '/' + nodes[i].name
+    if (childPath === path) {
+      return nodes.splice(i, 1)[0]
+    }
+    if (nodes[i].isDirectory && nodes[i].children) {
+      const found = removeNode(path, nodes[i].children!, childPath)
+      if (found) return found
+    }
+  }
+  return null
+}
+
 export function createMockAdapter(): FileSystemAdapter {
   return {
     async readDir(path: string): Promise<FileEntry[]> {
@@ -135,6 +150,16 @@ export function createMockAdapter(): FileSystemAdapter {
 
     async createDir(parentPath: string, name: string): Promise<void> {
       console.log('[mock] createDir', parentPath, name)
+    },
+
+    async move(srcPath: string, destDir: string): Promise<void> {
+      console.log('[mock] move', srcPath, '->', destDir)
+      const node = removeNode(srcPath, MOCK_TREE, '/project')
+      if (!node) return
+      const destChildren = findChildren(destDir, MOCK_TREE, '/project')
+      if (destChildren) {
+        destChildren.push(node)
+      }
     },
   }
 }
