@@ -60,6 +60,12 @@ ipcMain.handle('createDir', async (_event, parentPath: string, name: string) => 
   await fs.mkdir(path.join(parentPath, name))
 })
 
+// IPC: ファイル/フォルダ移動
+ipcMain.handle('move', async (_event, srcPath: string, destDir: string) => {
+  const name = path.basename(srcPath)
+  await fs.rename(srcPath, path.join(destDir, name))
+})
+
 // ファイル監視
 const watchers = new Map<string, ReturnType<typeof fsWatch>>()
 
