@@ -55,6 +55,11 @@ const adapter: FileSystemAdapter = {
   async createDir(parentPath, name) {
     await fs.mkdir(path.join(parentPath, name))
   },
+  // Optional: move (enables drag & drop)
+  async move(srcPath, destDir) {
+    const name = path.basename(srcPath)
+    await fs.rename(srcPath, path.join(destDir, name))
+  },
   // Optional: file watching (debounce & coalescing handled by core)
   watch(dirPath, callback) {
     const watcher = fs.watch(dirPath, { recursive: true }, (event, filename) => {
@@ -184,6 +189,8 @@ Main entry point for the headless file tree.
 | `createFile(parentPath, name)` | Create a file |
 | `createDir(parentPath, name)` | Create a directory |
 | `deleteSelected()` | Delete selected items |
+| `moveItems(srcPaths, destDir)` | Move files/folders to another directory (requires adapter.move) |
+| `canDrop(srcPaths, targetPath)` | Check if drop target is valid (self/descendant/same-parent check) |
 | `refresh(path?)` | Refresh the tree (preserves expanded state) |
 | `setSearchQuery(query)` | Set fuzzy search query (null to clear) |
 | `collectAllFiles()` | Recursively collect all files (for QuickOpen) |
@@ -217,6 +224,7 @@ Main entry point for the headless file tree.
 | `useContextMenu()` | Hook | Context menu visibility control (show/hide + position) |
 | `useExplorerKeybindings(inputService)` | Hook | momoi-keybind integration. Registers explorer command handlers |
 | `useExplorerFocus(inputService)` | Hook | Syncs focus state with momoi-keybind context |
+| `useDragDrop(enabled)` | Hook | Drag & drop container event handlers (used internally by FileExplorer) |
 | `useTreeContext()` | Hook | Raw TreeContext value (usually use useFileTree instead) |
 
 ### UI (`momoi-explorer/ui`)
@@ -331,6 +339,7 @@ type TreeEvent =
   | { type: 'rename'; oldPath: string; newPath: string }
   | { type: 'delete'; paths: string[] }
   | { type: 'create'; parentPath: string; name: string; isDirectory: boolean }
+  | { type: 'move'; srcPaths: string[]; destDir: string }
   | { type: 'refresh'; path?: string }
   | { type: 'external-change'; changes: WatchEvent[] }
 ```

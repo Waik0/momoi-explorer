@@ -66,6 +66,13 @@ export interface FileSystemAdapter {
    */
   createDir?(parentPath: string, name: string): Promise<void>
   /**
+   * ファイルまたはフォルダを別のディレクトリへ移動する。
+   * 実装するとドラッグ&ドロップによる移動操作が可能になる。
+   * @param srcPath - 移動元の絶対パス
+   * @param destDir - 移動先ディレクトリの絶対パス
+   */
+  move?(srcPath: string, destDir: string): Promise<void>
+  /**
    * ファイル変更監視を開始する。
    * 生イベントを投げるだけでOK。デバウンス・合体・スロットリングはコアが行う。
    * @param path - 監視するディレクトリの絶対パス
@@ -225,6 +232,7 @@ export type TreeEvent =
   | { type: 'rename'; oldPath: string; newPath: string }
   | { type: 'delete'; paths: string[] }
   | { type: 'create'; parentPath: string; name: string; isDirectory: boolean }
+  | { type: 'move'; srcPaths: string[]; destDir: string }
   | { type: 'refresh'; path?: string }
   | { type: 'external-change'; changes: WatchEvent[] }
 
@@ -405,6 +413,23 @@ export interface FileTreeController {
   createDir(parentPath: string, name: string): Promise<void>
   /** 選択中のアイテムをすべて削除する。adapter.deleteが呼ばれる */
   deleteSelected(): Promise<void>
+
+  // -- 移動（DnD） --
+
+  /**
+   * ファイル/フォルダを別のディレクトリへ移動する。adapter.moveが必要。
+   * @param srcPaths - 移動元の絶対パス配列
+   * @param destDir - 移動先ディレクトリの絶対パス
+   */
+  moveItems(srcPaths: string[], destDir: string): Promise<void>
+  /**
+   * 指定のドロップ先が有効かどうかを判定する。
+   * 自分自身・子孫・同一親フォルダへのドロップを禁止する。
+   * @param srcPaths - ドラッグ中のパス配列
+   * @param targetPath - ドロップ先のパス（ファイルの場合は親ディレクトリに解決される）
+   * @returns ドロップ可能ならtrue
+   */
+  canDrop(srcPaths: string[], targetPath: string): boolean
 
   // -- リフレッシュ --
 

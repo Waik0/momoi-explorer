@@ -438,6 +438,67 @@ export function createFileTree(options: FileTreeOptions): FileTreeController {
       emit({ type: 'delete', paths })
     },
 
+    canDrop(srcPaths: string[], targetPath: string): boolean {
+      if (!adapter.move) return false
+      if (srcPaths.length === 0) return false
+
+      // targetPathをディレクトリに解決
+      const node = findNode(state.rootNodes, targetPath)
+      let destDir: string
+      if (!node) {
+        // ノードが見つからない場合（ルート or 不明） → ルート
+        destDir = rootPath
+      } else if (node.isDirectory) {
+        destDir = targetPath
+      } else {
+        // ファイル → 親ディレクトリ
+        destDir = dirname(targetPath)
+      }
+
+      for (const src of srcPaths) {
+        // 自分自身へのドロップ禁止
+        if (src === destDir) return false
+        // 子孫へのドロップ禁止（循環防止）
+        const sep = src.includes('\\') ? '\\' : '/'
+        if (destDir.startsWith(src + sep)) return false
+        // 同一親フォルダへのドロップはno-op
+        if (dirname(src) === destDir) return false
+      }
+
+      return true
+    },
+
+    async moveItems(srcPaths: string[], destDir: string): Promise<void> {
+      if (!adapter.move || srcPaths.length === 0) return
+
+      // 各アイテムを移動
+      for (const src of srcPaths) {
+        await adapter.move(src, destDir)
+      }
+
+      // 影響を受けるディレクトリをリフレッシュ
+      const parentDirs = new Set(srcPaths.map(dirname))
+      parentDirs.add(destDir)
+      for (const dir of parentDirs) {
+        await refreshParent(dir)
+      }
+
+      // 移動先フォルダを展開（移動したアイテムが見えるように）
+      if (destDir !== rootPath && !state.expandedPaths.has(destDir)) {
+        state.expandedPaths = new Set(state.expandedPaths)
+        state.expandedPaths.add(destDir)
+      }
+
+      // 選択を移動後のパスに更新
+      const sep = destDir.includes('\\') ? '\\' : '/'
+      const newPaths = srcPaths.map((src) => destDir + sep + basename(src))
+      state.selectedPaths = new Set(newPaths)
+      state.anchorPath = newPaths[0] ?? null
+
+      notify()
+      emit({ type: 'move', srcPaths, destDir })
+    },
+
     async refresh(path?: string): Promise<void> {
       if (!path || path === rootPath) {
         await refreshParent(rootPath)

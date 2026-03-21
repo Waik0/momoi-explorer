@@ -5,6 +5,7 @@ import type { FileSystemAdapter, FileTreeController, FileTreeOptions, MenuItemDe
 import { TreeProvider } from '../react/TreeProvider'
 import { useFileTree } from '../react/useFileTree'
 import { useContextMenu } from '../react/useContextMenu'
+import { useDragDrop } from '../react/useDragDrop'
 import { useExplorerKeybindings, type InputServiceLike } from '../react/useExplorerKeybindings'
 import { useExplorerFocus } from '../react/useExplorerFocus'
 import { TreeNodeRow } from './TreeNodeRow'
@@ -74,7 +75,8 @@ function FileExplorerInner({
   onControllerReady,
   inputService,
   onKeyDown,
-}: Pick<FileExplorerProps, 'onOpen' | 'renderIcon' | 'renderBadge' | 'contextMenuItems' | 'showFilterBar' | 'onControllerReady' | 'inputService' | 'onKeyDown'>): React.JSX.Element {
+  dragEnabled,
+}: Pick<FileExplorerProps, 'onOpen' | 'renderIcon' | 'renderBadge' | 'contextMenuItems' | 'showFilterBar' | 'onControllerReady' | 'inputService' | 'onKeyDown'> & { dragEnabled: boolean }): React.JSX.Element {
   const { flatList, expandedPaths, selectedPaths, renamingPath, creatingState, rootPath, controller } = useFileTree()
 
   useEffect(() => {
@@ -84,6 +86,9 @@ function FileExplorerInner({
   // momoi-keybind接続
   useExplorerKeybindings(inputService ?? null)
   const focusProps = useExplorerFocus(inputService ?? null)
+
+  // DnD
+  const dnd = useDragDrop(dragEnabled)
 
   const ctxMenu = useContextMenu()
 
@@ -173,6 +178,11 @@ function FileExplorerInner({
       onFocus={focusProps.onFocus}
       onBlur={focusProps.onBlur}
       tabIndex={focusProps.tabIndex}
+      onDragStart={dnd.handleDragStart}
+      onDragOver={dnd.handleDragOver}
+      onDragLeave={dnd.handleDragLeave}
+      onDrop={dnd.handleDrop}
+      onDragEnd={dnd.handleDragEnd}
     >
       {showFilterBar && <TreeFilterBar />}
       <Virtuoso
@@ -218,6 +228,7 @@ function FileExplorerInner({
               isExpanded={expandedPaths.has(node.path)}
               isSelected={selectedPaths.has(node.path)}
               isRenaming={renamingPath === node.path}
+              draggable={dragEnabled}
               onClick={(e) => handleClick(node.path, node.isDirectory, e)}
               onDoubleClick={() => handleDoubleClick(node.path, node.isDirectory)}
               onContextMenu={(e) => handleContextMenu(e, node.path)}
@@ -295,6 +306,7 @@ export function FileExplorer({
           onControllerReady={onControllerReady}
           inputService={inputService}
           onKeyDown={onKeyDown}
+          dragEnabled={!!adapter.move}
         />
       </TreeProvider>
     </div>

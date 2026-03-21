@@ -47,6 +47,8 @@ export interface TreeNodeRowProps {
   isSelected: boolean
   /** リネーム中か */
   isRenaming: boolean
+  /** ドラッグ可能か（adapter.moveが存在する場合にtrue） */
+  draggable?: boolean
   /** 行クリック時のハンドラ */
   onClick(e: React.MouseEvent): void
   /** 行ダブルクリック時のハンドラ */
@@ -75,6 +77,7 @@ export const TreeNodeRow = memo(function TreeNodeRow({
   isExpanded,
   isSelected,
   isRenaming,
+  draggable,
   onClick,
   onDoubleClick,
   onContextMenu,
@@ -89,6 +92,7 @@ export const TreeNodeRow = memo(function TreeNodeRow({
       className="momoi-explorer-row"
       data-selected={isSelected}
       data-path={node.path}
+      draggable={draggable}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}

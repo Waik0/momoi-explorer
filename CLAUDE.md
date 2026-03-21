@@ -65,6 +65,7 @@ src/
     useFileTree.ts  … ツリー全体の状態とコントローラを取得するhook
     useTreeNode.ts  … 個別ノードの状態を取得するhook
     useContextMenu.ts … コンテキストメニュー制御hook
+    useDragDrop.ts  … ドラッグ&ドロップ制御hook
     context.ts      … TreeContext定義
   ui/           … デフォルト UI
     FileExplorer.tsx … オールインワンコンポーネント
@@ -84,7 +85,7 @@ examples/
 
 ### FileSystemAdapter パターン
 - ユーザーが実装する唯一の必須インターフェース
-- `readDir` のみ必須。`rename`, `delete`, `createFile`, `createDir`, `watch` はオプション
+- `readDir` のみ必須。`rename`, `delete`, `createFile`, `createDir`, `move`, `watch` はオプション
 - オプションメソッドを実装すると対応するUI機能が有効になる
 - `watch` は生イベントを投げるだけでOK。デバウンス・合体・スロットリングはコアが行う
 
@@ -94,7 +95,7 @@ examples/
 - `flatList` はツリーを展開状態に基づいてフラット化したもの。仮想スクロールに直接渡せる
 
 ### イベント処理
-- `TreeEvent` でツリー操作を外部に通知（expand, collapse, select, open, rename, delete, create, refresh, external-change）
+- `TreeEvent` でツリー操作を外部に通知（expand, collapse, select, open, rename, delete, create, move, refresh, external-change）
 - ファイル監視イベントは VSCode 準拠の合体処理: rename→delete+create、delete+create(同一パス)→modify
 
 ## npm scripts
@@ -119,11 +120,21 @@ npm run demo:electron # Electronデモ起動
 
 ### React層 (`momoi-explorer/react`)
 - `TreeProvider` コンポーネント
-- `useFileTree()`, `useTreeNode(path)`, `useContextMenu()`, `useTreeContext()`
+- `useFileTree()`, `useTreeNode(path)`, `useContextMenu()`, `useDragDrop(enabled)`, `useTreeContext()`
 
 ### UI層 (`momoi-explorer/ui`)
 - `FileExplorer`, `TreeNodeRow`, `ContextMenu`, `InlineRename`, `TreeFilterBar`, `QuickOpen`
 - CSS: `momoi-explorer/ui/style.css`
+
+## ドラッグ&ドロップ（VSCode準拠）
+
+- `FileSystemAdapter.move(srcPath, destDir)` を実装するとDnDが有効になる
+- ドロップ先はフォルダのみ（ファイル行へのドロップは親フォルダに解決）
+- 閉じたフォルダ上で500msホバー → 自動展開
+- 自分自身・子孫・同一親フォルダへのドロップは禁止
+- 複数選択のドラッグ対応（選択済みアイテムをドラッグで全選択がドラッグ対象）
+- ドラッグ中のビジュアルはDOM直接操作（パフォーマンス最適化、React再レンダリングなし）
+- `data-dragging` / `data-drag-over` 属性でCSS制御
 
 ## ファイルアイコン
 
