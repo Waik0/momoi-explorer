@@ -1,5 +1,7 @@
 # momoi-explorer
 
+> Built with [Claude Code](https://claude.com/claude-code) by Anthropic.
+
 A headless file explorer library. Framework-agnostic core + React bindings + default UI in a 3-layer architecture.
 
 ## Install
